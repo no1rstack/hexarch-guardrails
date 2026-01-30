@@ -1,0 +1,272 @@
+[
+    {
+        "id": "tab_hexarch_guardrails",
+        "type": "tab",
+        "label": "Hexarch Guardrails (Single User)",
+        "disabled": false,
+        "info": "Authorize -> Call Echo -> Log ProviderCall event"
+    },
+    {
+        "id": "httpin_run",
+        "type": "http in",
+        "z": "tab_hexarch_guardrails",
+        "name": "POST /hexarch/run",
+        "url": "/hexarch/run",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 200,
+        "wires": [
+            [
+                "fn_set_vars"
+            ]
+        ]
+    },
+    {
+        "id": "httpresp_run",
+        "type": "http response",
+        "z": "tab_hexarch_guardrails",
+        "name": "Response",
+        "statusCode": "200",
+        "headers": {},
+        "x": 1850,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "inj_manual",
+        "type": "inject",
+        "z": "tab_hexarch_guardrails",
+        "name": "Run",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 160,
+        "y": 120,
+        "wires": [
+            [
+                "fn_set_vars"
+            ]
+        ]
+    },
+    {
+        "id": "fn_set_vars",
+        "type": "function",
+        "z": "tab_hexarch_guardrails",
+        "name": "Set Vars",
+        "func": "// Configure for Docker Desktop (Windows/Mac):\n// - Node-RED runs in Docker\n// - Hexarch runs on host\n// Use host.docker.internal to reach host services\n\nconst baseUrl = env.get('HEXARCH_BASE_URL') || 'http://host.docker.internal:8099';\nconst token = env.get('HEXARCH_TOKEN') || 'dev-token';\n\nmsg.hexarch = {\n  baseUrl,\n  token,\n  actorId: 'node-red-user',\n};\n\nmsg.provider = {\n  resource: 'hexarch',\n  action: 'echo',\n  message: 'Hello from Node-RED',\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 120,
+        "wires": [
+            [
+                "fn_build_authorize"
+            ]
+        ]
+    },
+    {
+        "id": "http_authorize",
+        "type": "http request",
+        "z": "tab_hexarch_guardrails",
+        "name": "POST /authorize",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 590,
+        "y": 120,
+        "wires": [
+            [
+                "sw_allowed"
+            ]
+        ]
+    },
+    {
+        "id": "fn_build_authorize",
+        "type": "function",
+        "z": "tab_hexarch_guardrails",
+        "name": "Build /authorize request",
+        "func": "// Build request for Hexarch /authorize\nmsg.method = 'POST';\nmsg.url = msg.hexarch.baseUrl + '/authorize';\nmsg.headers = {\n  Authorization: 'Bearer ' + msg.hexarch.token,\n  'X-Actor-Id': msg.hexarch.actorId,\n  'Content-Type': 'application/json',\n};\n\nmsg.payload = {\n  action: 'call_provider',\n  resource: { name: msg.provider.resource },\n  context: { provider_action: msg.provider.action },\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 585,
+        "y": 60,
+        "wires": [
+            [
+                "http_authorize"
+            ]
+        ]
+    },
+    {
+        "id": "sw_allowed",
+        "type": "switch",
+        "z": "tab_hexarch_guardrails",
+        "name": "Allowed?",
+        "property": "payload.allowed",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "true"
+            },
+            {
+                "t": "false"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 780,
+        "y": 120,
+        "wires": [
+            [
+                "fn_build_echo"
+            ],
+            [
+                "dbg_denied"
+            ]
+        ]
+    },
+    {
+        "id": "dbg_denied",
+        "type": "debug",
+        "z": "tab_hexarch_guardrails",
+        "name": "Denied",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "payload.reason",
+        "statusType": "msg",
+        "x": 980,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "fn_build_echo",
+        "type": "function",
+        "z": "tab_hexarch_guardrails",
+        "name": "Build /echo request",
+        "func": "msg.method = 'POST';\nmsg.url = msg.hexarch.baseUrl + '/echo';\nmsg.headers = { 'Content-Type': 'application/json' };\nmsg.payload = {\n  message: msg.provider.message,\n  metadata: { orchestrator: 'node-red', flow: 'hexarch-single-user-echo' },\n};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1000,
+        "y": 80,
+        "wires": [
+            [
+                "http_echo"
+            ]
+        ]
+    },
+    {
+        "id": "http_echo",
+        "type": "http request",
+        "z": "tab_hexarch_guardrails",
+        "name": "POST /echo (public)",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1210,
+        "y": 80,
+        "wires": [
+            [
+                "fn_build_event"
+            ]
+        ]
+    },
+    {
+        "id": "fn_build_event",
+        "type": "function",
+        "z": "tab_hexarch_guardrails",
+        "name": "Build /events/provider-calls request",
+        "func": "msg.method = 'POST';\nmsg.url = msg.hexarch.baseUrl + '/events/provider-calls';\nmsg.headers = {\n  Authorization: 'Bearer ' + msg.hexarch.token,\n  'X-Actor-Id': msg.hexarch.actorId,\n  'Content-Type': 'application/json',\n};\n\nmsg.payload = {\n  resource: msg.provider.resource,\n  action: msg.provider.action,\n  ok: true,\n  status_code: 200,\n  metadata: { orchestrator: 'node-red', flow: 'hexarch-single-user-echo' },\n};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1220,
+        "y": 140,
+        "wires": [
+            [
+                "http_event"
+            ]
+        ]
+    },
+    {
+        "id": "http_event",
+        "type": "http request",
+        "z": "tab_hexarch_guardrails",
+        "name": "POST /events/provider-calls",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1460,
+        "y": 140,
+        "wires": [
+            [
+                "dbg_done",
+                "httpresp_run"
+            ]
+        ]
+    },
+    {
+        "id": "dbg_done",
+        "type": "debug",
+        "z": "tab_hexarch_guardrails",
+        "name": "Done",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": true,
+        "complete": "payload",
+        "targetType": "msg",
+        "x": 1660,
+        "y": 100,
+        "wires": []
+    }
+]

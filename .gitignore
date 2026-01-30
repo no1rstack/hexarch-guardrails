@@ -1,0 +1,51 @@
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+test-env/
+.hypothesis/
+.run/
+.env
+.env.local
+.env.*.local
+*.log
+.hexarch/
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.mypy_cache/
+.dmypy.json
+dmypy.json
+*.egg
+.tox/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Evidence artifacts (generated)
+evidence/
+
+# Node-RED
+node-red/.env.node-red
+node-red/data/*
+!node-red/data/flows.json
+!node-red/data/flows_cred.json
+
+# Test artifacts
+test_*.json
+test_*.yaml
+test_*.py

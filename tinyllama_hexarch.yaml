@@ -1,0 +1,138 @@
+# Hexarch Guardrails - TinyLlama API Protection Policies
+# Customize these for your needs
+
+policies:
+  # Policy 1: Rate Limiting for TinyLlama API
+  - id: "rate_limit"
+    description: "Prevent rate limiting and API abuse"
+    enabled: true
+    rules:
+      # Global TinyLlama limits
+      - resource: "tinyllama"
+        requests_per_minute: 30
+        requests_per_hour: 500
+        action: "block"
+      
+      # Chat endpoint specific
+      - resource: "tinyllama_chat"
+        requests_per_minute: 20
+        requests_per_hour: 300
+        action: "block"
+      
+      # Voice endpoint (more expensive)
+      - resource: "tinyllama_voice"
+        requests_per_minute: 5
+        requests_per_hour: 50
+        action: "block"
+
+  # Policy 2: API Budget Protection
+  - id: "api_budget"
+    description: "Monitor and limit API usage costs"
+    enabled: true
+    rules:
+      - resource: "tinyllama"
+        monthly_budget_usd: 100
+        alert_at_percentage: 75
+        action: "warn_at_75%"
+
+  # Policy 3: Safe Operations
+  - id: "safe_delete"
+    description: "Require confirmation for destructive ops"
+    enabled: true
+    rules:
+      - operation: "clear_cache"
+        requires: "confirmation"
+        action: "require_confirmation"
+
+  # Policy 4: Quality Controls
+  - id: "quality_control"
+    description: "Ensure API response quality"
+    enabled: true
+    rules:
+      # Temperature constraints
+      - parameter: "temperature"
+        min: 0.0
+        max: 1.0
+        action: "block"
+      
+      # Token limits
+      - parameter: "num_predict"
+        min: 1
+        max: 512
+        action: "block"
+      
+      # System prompt validation
+      - parameter: "system"
+        max_length: 2000
+        action: "warn"
+
+  # Policy 5: Access Control
+  - id: "access_control"
+    description: "Control who can use the API"
+    enabled: false  # Enable if you add authentication
+    rules:
+      - resource: "tinyllama_voice"
+        allowed_users: ["@admin", "@api_user"]
+        action: "block"
+
+  # Policy 6: Time-based Controls
+  - id: "time_based"
+    description: "Restrict expensive operations by time"
+    enabled: true
+    rules:
+      # Expensive voice generation during peak hours
+      - operation: "chat_with_voice"
+        forbidden_hours: ["09:00-17:00"]  # Business hours
+        allowed_hours: ["18:00-08:00"]     # Off-peak only
+        action: "warn"
+
+  # Policy 7: Model Selection
+  - id: "model_selection"
+    description: "Restrict which models can be used"
+    enabled: true
+    rules:
+      - model: "tinyllama"
+        allowed: true
+        action: "allow"
+      
+      # Add more models as they become available
+      # - model: "mistral"
+      #   allowed: true
+      #   action: "allow"
+
+  # Policy 8: Token Management
+  - id: "token_management"
+    description: "Control token usage per request"
+    enabled: true
+    rules:
+      - resource: "tinyllama"
+        max_tokens_per_request: 128
+        max_tokens_per_hour: 10000
+        warn_at_percentage: 80
+        action: "warn_at_80%"
+
+# Enforcement mode
+enforcement: "strict"  # strict = block, warn = warning only
+
+# Logging configuration
+logging:
+  enabled: true
+  level: "info"
+  file: ".hexarch/tinyllama_guardrails.log"
+
+# OPA connection
+opa:
+  url: "http://localhost:8181"
+  timeout_seconds: 5
+  health_check_interval: 30
+
+# TinyLlama specific config
+tinyllama:
+  api_url: "http://api.codexscrolls.io"
+  internal_url: "http://localhost:8000"
+  default_model: "tinyllama"
+  default_temperature: 0.7
+  default_max_tokens: 128
+  timeout_seconds: 30
+  retry_attempts: 3
+  retry_delay_seconds: 1

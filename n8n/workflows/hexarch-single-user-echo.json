@@ -1,0 +1,228 @@
+{
+    "name": "Hexarch: Single User (Authorize -> Call Echo -> Log Event)",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "manualTrigger",
+            "name": "Manual Trigger",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                260,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "hexarchBaseUrl",
+                            "value": "http://host.docker.internal:8099"
+                        },
+                        {
+                            "name": "hexarchToken",
+                            "value": "dev-token"
+                        },
+                        {
+                            "name": "resource",
+                            "value": "hexarch"
+                        },
+                        {
+                            "name": "action",
+                            "value": "echo"
+                        },
+                        {
+                            "name": "message",
+                            "value": "Hello from n8n"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "setVars",
+            "name": "Set Vars",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 2,
+            "position": [
+                480,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$json.hexarchBaseUrl + '/authorize'}}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{'Bearer ' + $json.hexarchToken}}"
+                        },
+                        {
+                            "name": "X-Actor-Id",
+                            "value": "n8n-user"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "jsonBody": "={\n  \"action\": \"call_provider\",\n  \"resource\": {\"name\": $json.resource},\n  \"context\": {\n    \"provider_action\": $json.action\n  }\n}",
+                "options": {
+                    "timeout": 30000
+                }
+            },
+            "id": "authorize",
+            "name": "Hexarch Authorize",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                720,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{$json.allowed}}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "id": "ifAllowed",
+            "name": "If Allowed",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                960,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$node['Set Vars'].json.hexarchBaseUrl + '/echo'}}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "jsonBody": "={\n  \"message\": $node['Set Vars'].json.message,\n  \"metadata\": {\n    \"orchestrator\": \"n8n\",\n    \"workflow\": \"hexarch-single-user-echo\"\n  }\n}",
+                "options": {
+                    "timeout": 30000
+                }
+            },
+            "id": "callEcho",
+            "name": "Call Hexarch Echo",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                1200,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$node['Set Vars'].json.hexarchBaseUrl + '/events/provider-calls'}}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{'Bearer ' + $node['Set Vars'].json.hexarchToken}}"
+                        },
+                        {
+                            "name": "X-Actor-Id",
+                            "value": "n8n-user"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "jsonBody": "={\n  \"resource\": $node['Set Vars'].json.resource,\n  \"action\": $node['Set Vars'].json.action,\n  \"ok\": true,\n  \"status_code\": 200,\n  \"metadata\": {\n    \"orchestrator\": \"n8n\",\n    \"workflow\": \"hexarch-single-user-echo\"\n  }\n}",
+                "options": {
+                    "timeout": 30000
+                }
+            },
+            "id": "logEvent",
+            "name": "Log Provider Event",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                1440,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Manual Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Set Vars",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Vars": {
+            "main": [
+                [
+                    {
+                        "node": "Hexarch Authorize",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Hexarch Authorize": {
+            "main": [
+                [
+                    {
+                        "node": "If Allowed",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If Allowed": {
+            "main": [
+                [
+                    {
+                        "node": "Call Hexarch Echo",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Call Hexarch Echo": {
+            "main": [
+                [
+                    {
+                        "node": "Log Provider Event",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "versionId": "1",
+    "meta": {
+        "templateCredsSetup": "This workflow uses Set Vars for tokens; replace with n8n credentials/env vars for real usage."
+    }
+}

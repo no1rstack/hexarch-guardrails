@@ -1,0 +1,14 @@
+services:
+  node-red:
+    image: nodered/node-red:latest
+    ports:
+      - "1880:1880"
+    env_file:
+      - ./.env.node-red
+    environment:
+      # Local single-user defaults. If you want to harden the editor:
+      # - Set up adminAuth in a custom settings.js and mount it.
+      TZ: "UTC"
+      FLOWS: "flows.json"
+    volumes:
+      - ./data:/data

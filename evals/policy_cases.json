@@ -1,0 +1,54 @@
+{
+    "name": "hexarch-policy-evals-v1",
+    "steps": [
+        {
+            "id": "deny_without_policies",
+            "type": "authorize",
+            "request": {
+                "action": "read",
+                "resource": {
+                    "type": "demo",
+                    "id": "resource-1"
+                },
+                "context": {
+                    "note": "no policies yet"
+                }
+            },
+            "expect": {
+                "allowed": false,
+                "decision": "DENY",
+                "reason": "no_applicable_policies"
+            }
+        },
+        {
+            "id": "bootstrap_create_allow_all_policy",
+            "type": "create_policy",
+            "request": {
+                "name": "allow-all",
+                "description": "Credibility harness: allow all requests (no rules)",
+                "scope": "GLOBAL",
+                "enabled": true,
+                "failure_mode": "FAIL_CLOSED",
+                "rule_ids": []
+            }
+        },
+        {
+            "id": "allow_with_allow_all_policy",
+            "type": "authorize",
+            "request": {
+                "action": "write",
+                "resource": {
+                    "type": "demo",
+                    "id": "resource-1"
+                },
+                "context": {
+                    "note": "policy present"
+                }
+            },
+            "expect": {
+                "allowed": true,
+                "decision": "ALLOW"
+            }
+        }
+    ]
+}

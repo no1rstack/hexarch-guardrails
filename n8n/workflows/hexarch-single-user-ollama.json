@@ -1,0 +1,236 @@
+{
+    "name": "Hexarch: Single User (Authorize -> Call Ollama -> Log Event)",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "manualTrigger",
+            "name": "Manual Trigger",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                260,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "hexarchBaseUrl",
+                            "value": "http://host.docker.internal:8099"
+                        },
+                        {
+                            "name": "hexarchToken",
+                            "value": "dev-token"
+                        },
+                        {
+                            "name": "resource",
+                            "value": "ollama"
+                        },
+                        {
+                            "name": "action",
+                            "value": "generate"
+                        },
+                        {
+                            "name": "ollamaUrl",
+                            "value": "http://host.docker.internal:11434/api/generate"
+                        },
+                        {
+                            "name": "model",
+                            "value": "llama3"
+                        },
+                        {
+                            "name": "prompt",
+                            "value": "Write a short haiku about governance."
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "setVars",
+            "name": "Set Vars",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 2,
+            "position": [
+                480,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$json.hexarchBaseUrl + '/authorize'}}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{'Bearer ' + $json.hexarchToken}}"
+                        },
+                        {
+                            "name": "X-Actor-Id",
+                            "value": "n8n-user"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "jsonBody": "={\n  \"action\": \"call_provider\",\n  \"resource\": {\"name\": $json.resource},\n  \"context\": {\n    \"provider_action\": $json.action,\n    \"model\": $json.model\n  }\n}",
+                "options": {
+                    "timeout": 30000
+                }
+            },
+            "id": "authorize",
+            "name": "Hexarch Authorize",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                720,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{$json.allowed}}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "id": "ifAllowed",
+            "name": "If Allowed",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                960,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$node['Set Vars'].json.ollamaUrl}}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "jsonBody": "={\n  \"model\": $node['Set Vars'].json.model,\n  \"prompt\": $node['Set Vars'].json.prompt,\n  \"stream\": false\n}",
+                "options": {
+                    "timeout": 120000
+                }
+            },
+            "id": "callOllama",
+            "name": "Call Ollama",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                1200,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$node['Set Vars'].json.hexarchBaseUrl + '/events/provider-calls'}}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{'Bearer ' + $node['Set Vars'].json.hexarchToken}}"
+                        },
+                        {
+                            "name": "X-Actor-Id",
+                            "value": "n8n-user"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "jsonBody": "={\n  \"resource\": $node['Set Vars'].json.resource,\n  \"action\": $node['Set Vars'].json.action,\n  \"ok\": true,\n  \"status_code\": 200,\n  \"model\": $node['Set Vars'].json.model,\n  \"metadata\": {\n    \"orchestrator\": \"n8n\",\n    \"workflow\": \"hexarch-single-user-ollama\"\n  }\n}",
+                "options": {
+                    "timeout": 30000
+                }
+            },
+            "id": "logEvent",
+            "name": "Log Provider Event",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                1440,
+                200
+            ]
+        }
+    ],
+    "connections": {
+        "Manual Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Set Vars",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Vars": {
+            "main": [
+                [
+                    {
+                        "node": "Hexarch Authorize",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Hexarch Authorize": {
+            "main": [
+                [
+                    {
+                        "node": "If Allowed",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If Allowed": {
+            "main": [
+                [
+                    {
+                        "node": "Call Ollama",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                []
+            ]
+        },
+        "Call Ollama": {
+            "main": [
+                [
+                    {
+                        "node": "Log Provider Event",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "versionId": "1",
+    "meta": {
+        "templateCredsSetup": "This workflow uses plain Set Vars for tokens; for real usage replace with n8n credentials/env vars."
+    }
+}

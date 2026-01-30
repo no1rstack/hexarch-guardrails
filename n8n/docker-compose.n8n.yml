@@ -1,0 +1,25 @@
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      # Single-user local mode (no signup). Set these if you want basic auth.
+      # N8N_BASIC_AUTH_ACTIVE: "true"
+      # N8N_BASIC_AUTH_USER: "admin"
+      # N8N_BASIC_AUTH_PASSWORD: "admin"
+
+      N8N_HOST: "localhost"
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: "http"
+      WEBHOOK_URL: "http://localhost:5678/"
+
+      # Optional: reduce noise
+      N8N_LOG_LEVEL: "info"
+      # Helpful for calling services on the host from inside Docker (Windows/Mac)
+      # In workflows, use http://host.docker.internal:8099 for Hexarch.
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:

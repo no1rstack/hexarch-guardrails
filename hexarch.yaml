@@ -1,0 +1,130 @@
+# Hexarch Guardrails Configuration
+# This file defines your safety policies for APIs, scripts, and cloud operations
+# 
+# Copy this to your project root as hexarch.yaml to get started
+# The guardian will auto-discover it!
+
+policies:
+  # Policy 1: API Budget Protection
+  # Prevents accidental overspending on expensive APIs like OpenAI, Anthropic, etc.
+  - id: "api_budget"
+    description: "Protect against overspending on API calls"
+    enabled: true
+    rules:
+      # OpenAI budget limit
+      - resource: "openai"
+        monthly_budget_usd: 10
+        alert_at_percentage: 75
+        action: "warn_at_75%"
+      
+      # Anthropic budget limit
+      - resource: "anthropic"
+        monthly_budget_usd: 5
+        alert_at_percentage: 80
+        action: "warn_at_80%"
+      
+      # AWS/GCP/Azure general budget
+      - resource: "cloud_services"
+        monthly_budget_usd: 50
+        alert_at_percentage: 70
+        action: "warn_at_70%"
+
+  # Policy 2: Rate Limiting
+  # Prevents API abuse and getting rate limited by services
+  - id: "rate_limit"
+    description: "Prevent API abuse and rate limiting"
+    enabled: true
+    rules:
+      # Global rate limit
+      - resource: "*"
+        requests_per_minute: 100
+        requests_per_hour: 1000
+        action: "block"
+      
+      # Discord specific
+      - resource: "discord"
+        requests_per_minute: 10
+        action: "block"
+      
+      # OpenAI specific
+      - resource: "openai"
+        requests_per_minute: 20
+        action: "block"
+
+  # Policy 3: Safe Deletion
+  # Requires confirmation for destructive operations
+  - id: "safe_delete"
+    description: "Require confirmation for destructive operations"
+    enabled: true
+    rules:
+      - operation: "delete"
+        resource_types: ["file", "directory", "database", "table"]
+        action: "require_confirmation"
+      
+      - operation: "truncate"
+        resource_types: ["database", "table"]
+        action: "require_confirmation"
+      
+      - operation: "format"
+        resource_types: ["disk", "volume"]
+        action: "require_confirmation"
+
+  # Policy 4: Access Control
+  # Restrict who can perform certain operations
+  - id: "access_control"
+    description: "Control who can access resources"
+    enabled: true
+    rules:
+      - resource: "admin_operations"
+        allowed_users: ["@owner"]
+        action: "block"
+      
+      - resource: "sensitive_data"
+        allowed_users: ["@self"]
+        action: "block"
+
+  # Policy 5: Time-based Controls
+  # Prevent operations at certain times or contexts
+  - id: "time_based"
+    description: "Prevent risky operations at wrong times"
+    enabled: true
+    rules:
+      - operation: "deploy_to_production"
+        forbidden_hours: ["22:00-06:00"]
+        action: "require_confirmation"
+      
+      - operation: "expensive_operation"
+        forbidden_days: ["friday", "saturday", "sunday"]
+        action: "warn"
+
+  # Policy 6: Feature Flags
+  # Toggle experimental features on/off
+  - id: "feature_flags"
+    description: "Control feature availability"
+    enabled: true
+    rules:
+      - feature: "experimental_model"
+        enabled: false
+        action: "block"
+      
+      - feature: "beta_api"
+        enabled: true
+        requires_approval: true
+        action: "warn"
+
+# Enforcement mode
+# Set to 'strict' to block all violations
+# Set to 'warn' to only warn about violations
+enforcement: "strict"
+
+# Logging
+logging:
+  enabled: true
+  level: "info"
+  file: ".hexarch/guardrails.log"
+
+# OPA Connection
+opa:
+  url: "http://localhost:8181"
+  timeout_seconds: 5
+  health_check_interval: 30
