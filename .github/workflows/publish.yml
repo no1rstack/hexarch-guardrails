@@ -1,73 +1,51 @@
-name: Publish to PyPI and GitHub Packages
+name: Publish
 
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch: {}
 
 jobs:
-  deploy:
+  publish:
     runs-on: ubuntu-latest
-    
+
     permissions:
-      contents: read
-      packages: write
-    
+      contents: write
+      id-token: write
+
     steps:
-      - uses: actions/checkout@v3
-      
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
-      - name: Install dependencies
+          cache: pip
+
+      - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install build wheel twine
-      
-      - name: Build package
+          pip install ".[dev]" build
+
+      - name: Test
+        run: pytest
+
+      - name: Build
         run: python -m build
-      
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*
-      
-      - name: Publish to GitHub Packages
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          twine upload dist/* \
-            --repository-url https://upload.pypi.org/legacy/ || true
-      
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to PyPI (token)
+        if: ${{ secrets.PYPI_API_TOKEN != '' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body: |
-            # Release ${{ github.ref }}
-            
-            **PyPI:** https://pypi.org/project/hexarch-guardrails/
-            
-            ## Installation
-            ```bash
-            pip install hexarch-guardrails
-            ```
-            
-            ## Changes
-            See CHANGELOG.md for details.
-          draft: false
-          prerelease: false
-      
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v1
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+      - name: Publish to PyPI (trusted publishing)
+        if: ${{ secrets.PYPI_API_TOKEN == '' }}
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
