@@ -2,6 +2,10 @@
 
 Lightweight policy-driven API protection for students, solo developers, and hackathons.
 
+## Source-of-truth
+
+This SDK is synced from the private monorepo (`no1rstack/Hexarch`) via an automated subtree publish workflow.
+
 ## Installation
 
 ```bash
