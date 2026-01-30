@@ -48,4 +48,5 @@ node-red/data/*
 # Test artifacts
 test_*.json
 test_*.yaml
-test_*.py
+# Ignore ad-hoc root-level test scripts (keep real unit tests under tests/ tracked)
+/test_*.py

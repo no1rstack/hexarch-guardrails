@@ -6,6 +6,7 @@ These are convenience workflows for local guardrails testing.
 from __future__ import annotations
 
 import json
+import http.client
 import os
 import subprocess
 import sys
@@ -51,8 +52,37 @@ def _http_json(
     except HTTPError as e:
         raw = e.read().decode("utf-8") if e.fp else ""
         raise RuntimeError(f"HTTP {e.code} for {method} {url}: {raw}") from e
+    except http.client.RemoteDisconnected as e:
+        raise RuntimeError(f"Request failed for {method} {url}: {e}") from e
     except (URLError, TimeoutError) as e:
         raise RuntimeError(f"Request failed for {method} {url}: {e}") from e
+
+
+def _http_ok(
+    method: str,
+    url: str,
+    *,
+    timeout_seconds: float = 3.0,
+    headers: Optional[dict[str, str]] = None,
+) -> bool:
+    req = Request(url, method=method)
+    for k, v in (headers or {}).items():
+        req.add_header(k, v)
+    try:
+        with urlopen(req, timeout=timeout_seconds) as resp:
+            return 200 <= int(getattr(resp, "status", 0) or 0) < 400
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _wait_for_node_red(node_red_base: str, timeout_seconds: float = 60.0) -> None:
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
+        # Node-RED serves HTML at '/', so don't use _http_json here.
+        if _http_ok("GET", f"{node_red_base}/", timeout_seconds=2.0):
+            return
+        time.sleep(0.5)
+    raise RuntimeError(f"Node-RED did not become reachable at {node_red_base} within {timeout_seconds:.0f}s")
 
 
 def _wait_for_health(
@@ -279,8 +309,24 @@ def node_red_bootstrap(
 
     cfg = ctx.config_manager.get_config()
 
+    # Node-RED runs in Docker. On Windows/macOS, containers reach the host via
+    # host.docker.internal, which typically cannot connect to a service bound only
+    # to 127.0.0.1. To make the "single-user" experience work out-of-the-box,
+    # we bind the temporary server to 0.0.0.0 when the user leaves --host at the
+    # default, but still use 127.0.0.1 for local bootstrap HTTP calls.
+    bind_host = host
+    client_host = host
+    if start_server and host in {"127.0.0.1", "localhost", "0.0.0.0"}:
+        client_host = "127.0.0.1"
+        if sys.platform.startswith("win") or sys.platform == "darwin":
+            bind_host = "0.0.0.0"
+            if host in {"127.0.0.1", "localhost"}:
+                ctx.formatter.print_info(
+                    "Binding Hexarch to 0.0.0.0 for Docker reachability (override with --host)."
+                )
+
     if start_server:
-        base_url = (hexarch_url or f"http://{host}:{port}").rstrip("/")
+        base_url = (hexarch_url or f"http://{client_host}:{port}").rstrip("/")
     else:
         base_url = (hexarch_url or cfg.api.url or f"http://{host}:{port}").rstrip("/")
     token = admin_token or cfg.api.token or os.getenv("HEXARCH_API_TOKEN")
@@ -298,6 +344,21 @@ def node_red_bootstrap(
     run_dir = Path(".run")
     run_dir.mkdir(parents=True, exist_ok=True)
 
+    # If we're starting a temporary server and asked to init the DB, default to an
+    # isolated per-run SQLite DB to avoid colliding with (and being broken by)
+    # an existing local DB that may be on an older schema.
+    server_database_url = database_url
+    if start_server and init_db and not server_database_url:
+        db_path = (run_dir / f"hexarch-node-red-bootstrap.{secrets.token_hex(4)}.sqlite3").resolve()
+        server_database_url = f"sqlite:///{db_path.as_posix()}"
+        (run_dir / "hexarch-node-red-bootstrap.database-url.txt").write_text(
+            server_database_url, encoding="utf-8"
+        )
+        ctx.formatter.print_info(
+            "No --database-url provided; using isolated bootstrap DB: "
+            f"{db_path} (override with --database-url)"
+        )
+
     # Resolve default output path to match repo layout.
     env_out = _resolve_env_path(env_out)
 
@@ -309,7 +370,7 @@ def node_red_bootstrap(
             "serve",
             "api",
             "--host",
-            host,
+            bind_host,
             "--port",
             str(port),
             "--api-token",
@@ -319,8 +380,8 @@ def node_red_bootstrap(
             args.append("--enable-api-key-admin")
         # Ensure bootstrap is explicit and time-bound.
         args.extend(["--bootstrap-allow", "--bootstrap-ttl-seconds", str(bootstrap_ttl_seconds)])
-        if database_url:
-            args.extend(["--database-url", database_url])
+        if server_database_url:
+            args.extend(["--database-url", server_database_url])
         if init_db:
             args.append("--init-db")
 
@@ -400,6 +461,46 @@ def node_red_bootstrap(
                 "Ensure the server is started with --enable-api-key-admin."
             )
 
+        # For a fresh DB, /authorize will deny by default until at least one policy exists.
+        # To make the single-user Node-RED demo work out-of-the-box, create a simple allow-all
+        # rule + policy when we started the server ourselves and initialized the DB.
+        if start_server and init_db:
+            try:
+                rule_payload = {
+                    "name": "node-red-allow-all",
+                    "description": "Single-user Node-RED milestone: allow all requests",
+                    "rule_type": "PERMISSION",
+                    "priority": 100,
+                    "enabled": True,
+                    # Always true for normal HTTP requests.
+                    "condition": {"field": "request.path", "op": "exists"},
+                }
+                rule_resp = _http_json("POST", f"{base_url}/rules", headers=headers, body=rule_payload)
+                rule_id = rule_resp.get("id")
+
+                if rule_id:
+                    policy_payload = {
+                        "name": "node-red-allow-all",
+                        "description": "Single-user Node-RED milestone: allow all",
+                        "enabled": True,
+                        "scope": "GLOBAL",
+                        "scope_value": None,
+                        "failure_mode": "FAIL_CLOSED",
+                        "rule_ids": [rule_id],
+                    }
+                    _http_json("POST", f"{base_url}/policies", headers=headers, body=policy_payload)
+                    ctx.formatter.print_success("Created demo allow-all policy for Node-RED")
+                else:
+                    ctx.formatter.print_warning(
+                        "Could not auto-create demo policy: /rules response did not include an id"
+                    )
+            except Exception as e:  # noqa: BLE001
+                # Don't fail bootstrap if the policy already exists or policy creation is blocked.
+                ctx.formatter.print_warning(
+                    "Could not auto-create demo allow-all policy (you can create one manually). "
+                    f"Reason: {e}"
+                )
+
         env_out.parent.mkdir(parents=True, exist_ok=True)
         docker_base_url = _docker_friendly_base_url(base_url)
         env_text = "\n".join(
@@ -444,6 +545,13 @@ def node_red_bootstrap(
             raise click.ClickException(
                 "API key admin endpoints are disabled. Start Hexarch with --enable-api-key-admin, "
                 "or re-run with --start-server."
+            ) from e
+        if "/api-keys" in msg and "HTTP 500" in msg:
+            raise click.ClickException(
+                "Hexarch returned HTTP 500 while creating the API key. "
+                "This usually indicates a local DB/schema issue. "
+                f"Check logs under {run_dir} (hexarch-node-red-bootstrap.stderr.log). "
+                "If you have an existing SQLite DB, provide an explicit --database-url to a fresh SQLite file."
             ) from e
         _track("node_red_bootstrap", "error", details={"error": msg})
         raise click.ClickException(msg) from e
@@ -520,12 +628,26 @@ def node_red_verify(
             "start",
             details={"node_red_url": node_red_base, "hexarch_url": base_url, "env_file": str(env_file)},
         )
+        _wait_for_node_red(node_red_base, timeout_seconds=60.0)
+
         if run:
-            run_resp = _http_json("POST", f"{node_red_base}/hexarch/run", body={})
-            ok = run_resp.get("ok")
-            ctx.formatter.print_success(
-                f"Node-RED run: ok={ok} id={run_resp.get('id')} action={run_resp.get('action')}"
-            )
+            # Node-RED may accept connections before flows are fully loaded.
+            # Retry the trigger for a short window to avoid flaky first-run failures.
+            deadline = time.time() + 120.0
+            last_err: Optional[Exception] = None
+            while time.time() < deadline:
+                try:
+                    run_resp = _http_json("POST", f"{node_red_base}/hexarch/run", body={}, timeout_seconds=30.0)
+                    ok = run_resp.get("ok")
+                    ctx.formatter.print_success(
+                        f"Node-RED run: ok={ok} id={run_resp.get('id')} action={run_resp.get('action')}"
+                    )
+                    break
+                except Exception as e:  # noqa: BLE001
+                    last_err = e
+                    time.sleep(0.75)
+            else:
+                raise RuntimeError(f"Node-RED trigger failed at {node_red_base}/hexarch/run: {last_err}")
 
         headers = {"Authorization": f"Bearer {token}"}
 

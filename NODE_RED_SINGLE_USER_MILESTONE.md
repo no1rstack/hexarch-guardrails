@@ -2,6 +2,18 @@
 
 This is the simplest free/OSS local orchestration setup to validate guardrails.
 
+## Milestone closure (individual usage)
+
+Consider the **single-user use case closed** when the following pass on a clean machine (Windows + Docker Desktop is the reference target):
+
+1. `hexarch-ctl node-red bootstrap --start-server --init-db --leave-running` succeeds and writes `node-red/.env.node-red`.
+2. `hexarch-ctl node-red up` starts Node-RED and the flow is available.
+3. `hexarch-ctl node-red verify` returns `Audit verify: ok=True` and a non-zero provider-call count.
+
+Notes:
+- If you omit `--database-url`, bootstrap uses an isolated per-run SQLite DB under `.run/` when `--init-db` is set.
+- If you want deterministic ports, pass `--port` to bootstrap and ensure nothing else is listening there.
+
 ## 1) Start Hexarch API
 
 From `hexarch-guardrails-py/`:
@@ -17,6 +29,7 @@ Optional (recommended): generate a dedicated API key for Node-RED and write `nod
 
 ```powershell
 # One-shot: starts Hexarch with API key admin enabled, mints a key, then restarts locked-down.
+# If you omit --database-url, it will use an isolated per-run SQLite DB under `.run/` when --init-db is set.
 hexarch-ctl node-red bootstrap --start-server --host 127.0.0.1 --port 8099 --init-db --bootstrap-ttl-seconds 900
 ```
 
