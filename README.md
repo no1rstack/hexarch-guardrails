@@ -99,6 +99,11 @@ def delete_file(path):
 
 - [Policy Authoring Guide](./docs/POLICY_GUIDE.md)
 - [API Reference](./docs/API_REFERENCE.md)
+- [Implementation Audit](./docs/IMPLEMENTATION_AUDIT.md)
+- [Technical Source Documentation (Implementation-Bound)](./docs/TECHNICAL_SOURCE_DOCUMENTATION.md)
+- [Claims Validation Matrix](./docs/CLAIMS_VALIDATION_MATRIX.md)
+- [Public Technical Overview](./docs/PUBLIC_DOCUMENTATION.md)
+- [PyPI Claims Validation Report](./docs/PYPI_CLAIMS_VALIDATION.md)
 - [Examples](./examples/)
 
 ## Admin CLI (v0.3.0+)
