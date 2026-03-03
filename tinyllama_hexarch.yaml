@@ -31,7 +31,7 @@ policies:
     enabled: true
     rules:
       - resource: "tinyllama"
-        monthly_budget_usd: 100
+        monthly_budget: 100
         alert_at_percentage: 75
         action: "warn_at_75%"
 

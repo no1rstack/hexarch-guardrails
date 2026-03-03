@@ -13,19 +13,19 @@ policies:
     rules:
       # OpenAI budget limit
       - resource: "openai"
-        monthly_budget_usd: 10
+        monthly_budget: 10
         alert_at_percentage: 75
         action: "warn_at_75%"
       
       # Anthropic budget limit
       - resource: "anthropic"
-        monthly_budget_usd: 5
+        monthly_budget: 5
         alert_at_percentage: 80
         action: "warn_at_80%"
       
       # AWS/GCP/Azure general budget
       - resource: "cloud_services"
-        monthly_budget_usd: 50
+        monthly_budget: 50
         alert_at_percentage: 70
         action: "warn_at_70%"
 

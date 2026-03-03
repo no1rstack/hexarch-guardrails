@@ -29,7 +29,7 @@ policies:
     description: "Protect against overspending"
     rules:
       - resource: "openai"
-        monthly_budget_usd: 10
+        monthly_budget: 10
         action: "warn_at_80%"
 
   - id: "rate_limit"

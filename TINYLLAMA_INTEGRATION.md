@@ -165,7 +165,7 @@ requests_per_minute: 50
 
 **Change budget:**
 ```yaml
-monthly_budget_usd: 200
+monthly_budget: 200
 ```
 
 **Allow all temperatures:**

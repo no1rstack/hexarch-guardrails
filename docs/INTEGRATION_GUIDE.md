@@ -212,7 +212,7 @@ data:
       - id: "api_budget"
         rules:
           - resource: "openai"
-            monthly_budget_usd: 10
+                        monthly_budget: 10
 ```
 
 **Deploy:**
