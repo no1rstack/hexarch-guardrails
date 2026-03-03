@@ -39,6 +39,8 @@ from hexarch_guardrails import Guardian
 # Initialize (auto-discovers hexarch.yaml)
 guardian = Guardian()
 
+# ⚠️ Requires a running OPA server (see "Running OPA Locally" below)
+
 # Protect your expensive API calls
 @guardian.check("api_budget")
 def call_openai(prompt: str):
@@ -94,7 +96,7 @@ guardian = Guardian()
 async def send_discord_message(channel, message):
     await channel.send(message)
 
-# Won't exceed Discord's rate limits
+# Enforces your configured rate limits before sending
 await send_discord_message(channel, "Hello!")
 ```
 
@@ -110,9 +112,8 @@ guardian = Guardian()
 def delete_important_file(path: str):
     os.remove(path)
 
-# Requires user confirmation before deleting
+# Will block unless confirmation logic is implemented by the application
 delete_important_file("important_data.csv")
-# ⚠️ Confirmation required: Delete important_data.csv? (y/n)
 ```
 
 ### 4️⃣ AWS/Cloud Operations
@@ -283,7 +284,8 @@ else:
 ```python
 policies = guardian.list_policies()
 print(f"Available policies: {policies}")
-# Output: Available policies: ['api_budget', 'rate_limit', 'safe_delete', 'access_control', 'time_based']
+# Example output (depends on your hexarch.yaml):
+# Available policies: ['api_budget', 'rate_limit', 'safe_delete', 'access_control', 'time_based']
 ```
 
 ### Get Policy Details
