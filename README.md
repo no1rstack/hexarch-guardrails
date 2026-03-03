@@ -54,7 +54,7 @@ from hexarch_guardrails import Guardian
 # Initialize (auto-discovers hexarch.yaml)
 guardian = Guardian()
 
-# ⚠️ Requires a running OPA server (see below)
+# ⚠️ Requires a running OPA server (local or remote)
 
 # Protect API calls
 @guardian.check("api_budget")

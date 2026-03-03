@@ -28,6 +28,7 @@ Guardian(
 **Example:**
 ```python
 guardian = Guardian()
+# ⚠️ Requires a running OPA server (local or remote)
 # or
 guardian = Guardian(policy_file="/etc/hexarch.yaml", opa_url="http://opa:8181")
 ```
