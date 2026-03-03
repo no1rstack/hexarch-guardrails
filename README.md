@@ -62,10 +62,11 @@ response = call_openai("Hello AI!")
 
 ## Features
 
-- ✅ **Zero-config** - Auto-discovers `hexarch.yaml`
+- ✅ **Zero-policy-language changes** - Auto-discovers `hexarch.yaml`; YAML + rule DSL, no code restructuring
 - ✅ **Decorator-based** - Drop in `@guardian.check(policy_id)`
-- ✅ **Policy-driven** - YAML-based rules, no code changes
-- ✅ **Local-first** - Works offline or with local OPA
+- ✅ **Policy-driven** - YAML-based rules, OPA-backed evaluation
+- ✅ **Works with OPA** - Local or remote OPA server; requires OPA connectivity
+- ✅ **Per-process rate limiting** - Built-in sliding-window limiter per instance
 - ✅ **Pluggable** - Works with any API/SDK
 
 ## Examples
