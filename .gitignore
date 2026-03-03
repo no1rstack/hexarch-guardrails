@@ -50,3 +50,6 @@ test_*.json
 test_*.yaml
 # Ignore ad-hoc root-level test scripts (keep real unit tests under tests/ tracked)
 /test_*.py
+
+# Internal-only strategy and engagement materials
+/internal/

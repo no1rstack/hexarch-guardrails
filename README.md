@@ -1,6 +1,6 @@
 # Hexarch Guardrails Python SDK
 
-Lightweight policy-driven API protection for students, solo developers, and hackathons.
+Lightweight policy-driven API protection for developers and small teams.
 
 [![PyPI version](https://badge.fury.io/py/hexarch-guardrails.svg)](https://pypi.org/project/hexarch-guardrails/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -29,7 +29,7 @@ policies:
     description: "Protect against overspending"
     rules:
       - resource: "openai"
-        monthly_budget: 10
+        monthly_budget_usd: 10
         action: "warn_at_80%"
 
   - id: "rate_limit"
@@ -53,6 +53,8 @@ from hexarch_guardrails import Guardian
 
 # Initialize (auto-discovers hexarch.yaml)
 guardian = Guardian()
+
+# ⚠️ Requires a running OPA server (see below)
 
 # Protect API calls
 @guardian.check("api_budget")
@@ -87,16 +89,11 @@ See policy violations in action without installing anything. Click, run cells, a
 > **Building something with Hexarch?** [Share your story](https://github.com/no1rstack/hexarch-guardrails/discussions) and we'll feature you here!
 
 <details>
-<summary><b>What developers are saying...</b></summary>
+<summary><b>Early adopter signals</b></summary>
 
-> *"Set up in 5 minutes, saved me $400 in the first week by catching a runaway retry loop."*  
-> — Solo developer building RAG apps
-
-> *"Perfect for hackathons. Drop it in, configure policies, forget about it."*  
-> — AI startup founder
-
-> *"We use it in production to protect our OpenAI endpoints. Simple, reliable, no overhead."*  
-> — Engineering team lead
+- Early users report catching runaway API loops and overspend during development.
+- Adopted in initial RAG app prototypes and hackathon builds.
+- Public testimonials are added only when externally attributable.
 
 </details>
 
