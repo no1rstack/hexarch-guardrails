@@ -77,6 +77,58 @@ class ConfigManager:
                 merged["audit"] = {}
             merged["audit"]["log_path"] = os.getenv("HEXARCH_AUDIT_LOG")
 
+        # Override runtime policy settings
+        if os.getenv("HEXARCH_POLICY_PROFILE"):
+            if "policies" not in merged:
+                merged["policies"] = {}
+            merged["policies"]["profile"] = os.getenv("HEXARCH_POLICY_PROFILE")
+
+        if os.getenv("HEXARCH_POLICY_PATH"):
+            if "policies" not in merged:
+                merged["policies"] = {}
+            merged["policies"]["policy_path"] = os.getenv("HEXARCH_POLICY_PATH")
+
+        if os.getenv("HEXARCH_POLICY_FILE"):
+            if "policies" not in merged:
+                merged["policies"] = {}
+            merged["policies"]["policy_file"] = os.getenv("HEXARCH_POLICY_FILE")
+
+        if os.getenv("HEXARCH_POLICY_MERGE_MODE"):
+            if "policies" not in merged:
+                merged["policies"] = {}
+            merged["policies"]["merge_mode"] = os.getenv("HEXARCH_POLICY_MERGE_MODE")
+
+        if os.getenv("HEXARCH_POLICY_ENGINE_MODE"):
+            if "policies" not in merged:
+                merged["policies"] = {}
+            merged["policies"]["engine_mode"] = os.getenv("HEXARCH_POLICY_ENGINE_MODE")
+
+        if os.getenv("HEXARCH_POLICY_RUNTIME_MODE"):
+            if "policies" not in merged:
+                merged["policies"] = {}
+            merged["policies"]["runtime_mode"] = os.getenv("HEXARCH_POLICY_RUNTIME_MODE")
+
+        if os.getenv("HEXARCH_POLICY_OPA_URL"):
+            if "policies" not in merged:
+                merged["policies"] = {}
+            merged["policies"]["opa_url"] = os.getenv("HEXARCH_POLICY_OPA_URL")
+
+        if os.getenv("HEXARCH_POLICY_FAIL_CLOSED"):
+            if "policies" not in merged:
+                merged["policies"] = {}
+            merged["policies"]["fail_closed"] = os.getenv("HEXARCH_POLICY_FAIL_CLOSED").lower() == "true"
+
+        # Backward-compatible env aliases for SDK runtime policy settings
+        if os.getenv("POLICY_PROFILE") and not (merged.get("policies") or {}).get("profile"):
+            if "policies" not in merged:
+                merged["policies"] = {}
+            merged["policies"]["profile"] = os.getenv("POLICY_PROFILE")
+
+        if os.getenv("POLICY_PATH") and not (merged.get("policies") or {}).get("policy_path"):
+            if "policies" not in merged:
+                merged["policies"] = {}
+            merged["policies"]["policy_path"] = os.getenv("POLICY_PATH")
+
         # Override database settings
         if os.getenv("HEXARCH_DB_URL"):
             if "db" not in merged:

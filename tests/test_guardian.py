@@ -137,3 +137,40 @@ def test_unknown_policy(temp_policy_file, mock_opa_client):
         
         with pytest.raises(ValueError):
             guardian.evaluate_policy("unknown_policy", {})
+
+
+def test_guardian_uses_env_runtime_defaults(temp_policy_file):
+    mock_opa = MagicMock()
+
+    with patch.dict(os.environ, {
+        "HEXARCH_POLICY_FILE": temp_policy_file,
+        "HEXARCH_POLICY_OPA_URL": "http://localhost:9191",
+    }, clear=False):
+        with patch('hexarch_guardrails.guardian.OPAClient', return_value=mock_opa) as mock_client:
+            guardian = Guardian()
+
+    assert guardian.policy_file == temp_policy_file
+    assert guardian.opa_url == "http://localhost:9191"
+    mock_client.assert_called_once_with("http://localhost:9191")
+
+
+def test_guardian_rego_bundle_mode_evaluates_with_engine(monkeypatch):
+    mock_engine = MagicMock()
+    mock_engine.evaluate.return_value = {"allow": True, "raw": {"allow": True}, "error": None}
+
+    with patch('hexarch_guardrails.guardian.build_engine_from_bundle', return_value=mock_engine):
+        guardian = Guardian(runtime_mode="rego-bundle")
+        decision = guardian.evaluate_policy("api_budget", {"path": "/health"})
+
+    assert guardian.runtime_mode == "rego-bundle"
+    assert decision["allowed"] is True
+    assert decision["mode"] == "rego-bundle"
+    assert "Allowed" in decision["reason"]
+
+
+def test_guardian_rego_bundle_mode_skips_yaml_policy_loading():
+    with patch('hexarch_guardrails.guardian.PolicyLoader.load') as mock_load:
+        with patch('hexarch_guardrails.guardian.build_engine_from_bundle', return_value=MagicMock()):
+            Guardian(runtime_mode="rego-bundle")
+
+    mock_load.assert_not_called()

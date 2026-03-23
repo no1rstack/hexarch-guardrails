@@ -69,6 +69,14 @@ def call_openai(prompt):
 response = call_openai("Hello AI!")
 ```
 
+### 3. Start OPA locally (if not already running)
+
+```bash
+docker run -p 8181:8181 openpolicyagent/opa:latest run --server
+```
+
+Then run your script as usual.
+
 ## Features
 
 - ✅ **Zero-policy-language changes** - Auto-discovers `hexarch.yaml`; YAML + rule DSL, no code restructuring
@@ -83,6 +91,12 @@ response = call_openai("Hello AI!")
 **[→ Interactive Demo on Google Colab](https://colab.research.google.com/github/no1rstack/hexarch-guardrails/blob/main/demos/hexarch_guardrails_demo.ipynb)**
 
 See policy violations in action without installing anything. Click, run cells, and watch guardrails protect your code.
+
+## Demos
+
+- **Notebook demo**: [`demos/hexarch_guardrails_demo.ipynb`](./demos/hexarch_guardrails_demo.ipynb)
+- **CLI-friendly first-run demo**: [`demos/first_run_guarded_call_demo.py`](./demos/first_run_guarded_call_demo.py)
+- **OPA preflight + policy probe demo**: [`demos/opa_preflight_policy_probe.py`](./demos/opa_preflight_policy_probe.py)
 
 ## 🌟 Trusted By
 
@@ -179,6 +193,12 @@ hexarch-ctl policy validate ./policy.rego
 hexarch-ctl policy diff ai_governance
 ```
 
+If `hexarch-ctl` resolves to the wrong Python interpreter on Windows, use:
+
+```bash
+python -m hexarch_cli policy list
+```
+
 ### Available Commands
 
 **Policy Management**:
@@ -213,6 +233,32 @@ hexarch-ctl serve api --host 127.0.0.1 --port 8099 --init-db --api-token dev-tok
 Notes:
 - `/health` is public; most endpoints require a bearer token.
 - API key management endpoints (`/api-keys`) are disabled by default and can be enabled explicitly with `HEXARCH_API_KEY_ADMIN_ENABLED=true`.
+
+### Quick demo onboarding (`/demo`)
+
+For a hosted sandbox flow (for example, `https://hexarch.systems/demo`), use the built-in demo session bootstrap:
+
+1. Run `hexarch-ctl init` to request a short-lived bootstrap token.
+2. The browser opens `/demo?token=...` and exchanges that token via `POST /api/demo/exchange`.
+3. The exchanged token is scoped to demo session routes only (`/demo/policies`, `/demo/evaluate`).
+
+Demo route behavior:
+- Bootstrap tokens are short-lived and one-time exchange.
+- Session tokens are short-lived and sandbox-scoped.
+- Destructive actions are denied in `/demo/evaluate`.
+- Demo evaluation is non-persistent by design.
+
+Key demo environment variables:
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `HEXARCH_DEMO_TOKEN_SECRET` | HMAC signing secret for demo tokens | generated fallback |
+| `HEXARCH_DEMO_ISSUE_RPM` | Per-IP rate limit for `POST /api/demo/session` | `5` |
+| `HEXARCH_DEMO_EXCHANGE_RPM` | Per-IP rate limit for `POST /api/demo/exchange` | `20` |
+| `HEXARCH_DEMO_SESSION_RPM` | Per-session rate limit for demo route usage | `60` |
+| `HEXARCH_DEMO_WEB_URL` | URL used by `hexarch-ctl init` for browser redirect | `https://hexarch.systems/demo` |
+
+> The current `/demo` UI style is adapted from Bootstrap examples (MIT).
 
 ## Credibility: OpenAPI fuzz scan (Schemathesis)
 
@@ -264,11 +310,78 @@ For a complete local workflow that (1) calls `/authorize`, (2) calls a provider 
 
 - [N8N_SINGLE_USER_MILESTONE.md](./N8N_SINGLE_USER_MILESTONE.md)
 
+## n8n Integration Example
+
+Technical walkthrough for pre-execution policy enforcement in n8n with an importable workflow and deterministic allow/deny routing:
+
+- [ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_N8N_IN_15_MINUTES.md](./n8n/ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_N8N_IN_15_MINUTES.md)
+
+## GitHub Actions Integration Example
+
+Technical walkthrough for pre-execution policy enforcement in GitHub Actions with an importable workflow pattern and deterministic allow/deny routing:
+
+- [ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_GITHUB_ACTIONS_IN_15_MINUTES.md](./github-actions/ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_GITHUB_ACTIONS_IN_15_MINUTES.md)
+
+## Postman Integration Example
+
+Technical walkthrough for pre-execution policy enforcement in Postman with an importable collection, local environment, and deterministic allow/deny authorization checks:
+
+- [ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_POSTMAN_IN_15_MINUTES.md](./postman/ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_POSTMAN_IN_15_MINUTES.md)
+
+## Flowise Integration Example
+
+Technical walkthrough for pre-execution policy enforcement in Flowise Agentflow V2 using HTTP, Condition, and Direct Reply nodes with shared `$flow.state` for deterministic allow/deny routing:
+
+- [ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_FLOWISE_IN_15_MINUTES.md](./flowise/ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_FLOWISE_IN_15_MINUTES.md)
+
+## Langflow Integration Example
+
+Technical walkthrough for pre-execution policy enforcement in Langflow using the native `API Request` component, reusable guard subflows, and an optional custom component starter for deterministic allow/deny routing:
+
+- [ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_LANGFLOW_IN_15_MINUTES.md](./langflow/ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_LANGFLOW_IN_15_MINUTES.md)
+
+## Pipedream Integration Example
+
+Technical walkthrough for pre-execution policy enforcement in Pipedream using two Node.js code steps — `check_policy` (POST to `/authorize`) and `enforce` (`$.flow.exit()` on deny) — to gate any downstream step with a deterministic allow/deny decision:
+
+- [ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_PIPEDREAM_IN_15_MINUTES.md](./pipedream/ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_PIPEDREAM_IN_15_MINUTES.md)
+
+## Zapier Integration Example
+
+Technical walkthrough for pre-execution policy enforcement in Zapier using a Code by Zapier step (`check_policy`) and a built-in Filter step to gate any downstream Zap action with a deterministic allow/deny decision:
+
+- [ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_ZAPIER_IN_15_MINUTES.md](./zapier/ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_ZAPIER_IN_15_MINUTES.md)
+
+## Node-RED Integration Example
+
+Technical walkthrough for pre-execution policy enforcement in Node-RED with an importable flow and deterministic allow/deny routing:
+
+- [ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_NODE_RED_IN_15_MINUTES.md](./node-red/ADDING_PRE_EXECUTION_POLICY_ENFORCEMENT_TO_NODE_RED_IN_15_MINUTES.md)
+
 ## Node-RED End-to-End (Single User Milestone)
 
 If you prefer an Apache-2.0 OSS orchestrator for guardrails testing (authorize → echo → log provider call), see:
 
 - [NODE_RED_SINGLE_USER_MILESTONE.md](./NODE_RED_SINGLE_USER_MILESTONE.md)
+
+## PyPI release checklist
+
+Use this checklist before publishing a new package version:
+
+1. **Confirm version metadata**
+  - Update `version` in `pyproject.toml`.
+  - Ensure `hexarch_guardrails/__init__.py` exports matching `__version__`.
+2. **Run validation locally**
+  - Run full test suite (`python -m pytest -q`).
+  - Run any required smoke checks for `hexarch-ctl` and server mode.
+3. **Build distribution artifacts**
+  - Build wheel/sdist (`python -m build`).
+4. **Validate artifacts**
+  - Run Twine checks (`python -m twine check dist/*`).
+5. **Publish**
+  - Upload to PyPI with Twine.
+6. **Post-publish verification**
+  - Install from PyPI in a clean env and run a quick `Guardian` + `hexarch-ctl` smoke test.
 
 ## License
 

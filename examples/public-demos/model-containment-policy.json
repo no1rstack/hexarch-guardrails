@@ -1,0 +1,12 @@
+{
+  "name": "model-usage-containment-policy",
+  "description": "Restrict model and token usage",
+  "enabled": true,
+  "scope": "GLOBAL",
+  "scope_value": null,
+  "failure_mode": "FAIL_CLOSED",
+  "rule_ids": [
+    "d3266023-4c45-4195-b4a5-a4fbe93e1c33",
+    "b5b90a5c-67b1-4054-9398-1745c989492b"
+  ]
+}

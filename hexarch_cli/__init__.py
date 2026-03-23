@@ -7,7 +7,7 @@ and monitoring provider performance metrics.
 Version: 0.4.0
 """
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 __author__ = "Noir Stack LLC"
 __license__ = "MIT"
 

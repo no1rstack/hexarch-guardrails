@@ -75,6 +75,7 @@ Issues = "https://github.com/no1rstack/hexarch-guardrails/issues"
 [tool.setuptools]
 packages = [
     "hexarch_guardrails",
+    "hexarch_guardrails.policies",
     "hexarch_cli",
     "hexarch_cli.api",
     "hexarch_cli.commands",
@@ -86,6 +87,9 @@ packages = [
     "hexarch_cli.output",
     "hexarch_cli.server",
 ]
+
+[tool.setuptools.package-data]
+"hexarch_guardrails.policies" = ["*.rego"]
 
 [tool.black]
 line-length = 88

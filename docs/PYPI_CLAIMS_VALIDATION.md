@@ -1,7 +1,7 @@
 # PyPI Claims vs. Implementation Audit Report
 
-**Date**: March 2, 2026  
-**Audit Version**: 0.4.0  
+**Date**: March 22, 2026  
+**Audit Version**: 0.4.1  
 **Test Coverage**: 29/29 passed
 
 ---
@@ -10,7 +10,7 @@
 
 **Published on PyPI as:**
 - Name: `hexarch-guardrails`
-- Version: `0.4.0`
+- Version: `0.4.1`
 - Description: *"Lightweight policy-driven API protection and guardrails library"*
 - Keywords: policy, guardrails, api, protection, opa
 - Status: Development Status :: 4 - Beta

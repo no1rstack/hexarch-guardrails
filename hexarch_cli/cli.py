@@ -1,6 +1,8 @@
 """Root CLI group for hexarch-ctl."""
 
 import sys
+import os
+import webbrowser
 from pathlib import Path
 from typing import Optional
 import click
@@ -9,7 +11,7 @@ from hexarch_cli.config.config import ConfigManager
 from hexarch_cli.api.client import HexarchAPIClient
 from hexarch_cli.output.formatter import OutputFormatter
 from hexarch_cli.logging.audit import AuditLogger
-from hexarch_cli.commands.policy import policy_group
+from hexarch_cli.commands.policy import policy_group, eval_command, enforce_command
 from hexarch_cli.commands.decision import decision_group
 from hexarch_cli.commands.metrics import metrics_group
 from hexarch_cli.commands.config import config_group
@@ -18,6 +20,7 @@ from hexarch_cli.commands.db import db_group
 from hexarch_cli.commands.entitlement import entitlement_group
 from hexarch_cli.commands.serve import serve_group
 from hexarch_cli.commands.node_red import node_red_group
+from hexarch_cli.commands.trace import trace_group
 from hexarch_cli import __version__
 
 
@@ -109,8 +112,48 @@ def health(ctx: HexarchContext) -> None:
         sys.exit(1)
 
 
+@cli.command(name="init")
+@click.option("--open-browser/--no-open-browser", default=True, help="Open demo URL in the browser")
+@click.option("--demo-url", default=None, help="Override demo URL (default: HEXARCH_DEMO_WEB_URL or https://hexarch.systems/demo)")
+@click.pass_obj
+def init_demo(ctx: HexarchContext, open_browser: bool, demo_url: Optional[str]) -> None:
+    """Start a constrained demo onboarding session and open the demo page."""
+    try:
+        response = ctx.api_client.post("/api/demo/session", json={})
+        token = response.get("token")
+        expires_in = int(response.get("expires_in", 0))
+        session_id = response.get("session_id")
+
+        if not token:
+            raise RuntimeError("Demo session response missing token")
+
+        target = (demo_url or os.getenv("HEXARCH_DEMO_WEB_URL") or "https://hexarch.systems/demo").rstrip("/")
+        full_url = f"{target}?token={token}"
+
+        ctx.formatter.print_success(f"Demo session created (expires in {expires_in // 60 or expires_in} min)")
+        click.echo(f"Session ID: {session_id}")
+        click.echo("→ Opening browser..." if open_browser else "→ Browser open skipped")
+
+        if open_browser:
+            webbrowser.open(full_url)
+        else:
+            click.echo(full_url)
+
+        ctx.audit_logger.log_command(
+            command="init",
+            args={"open_browser": open_browser, "demo_url": target, "session_id": session_id},
+            result="Demo session created",
+        )
+    except Exception as exc:
+        ctx.formatter.print_error(f"Failed to initialize demo session: {exc}")
+        ctx.audit_logger.log_command(command="init", error=str(exc))
+        sys.exit(1)
+
+
 # Register command groups
 cli.add_command(policy_group)
+cli.add_command(eval_command)
+cli.add_command(enforce_command)
 cli.add_command(decision_group)
 cli.add_command(metrics_group)
 cli.add_command(config_group)
@@ -119,6 +162,7 @@ cli.add_command(db_group)
 cli.add_command(entitlement_group)
 cli.add_command(serve_group)
 cli.add_command(node_red_group)
+cli.add_command(trace_group)
 
 
 if __name__ == "__main__":

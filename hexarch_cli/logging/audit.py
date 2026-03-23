@@ -1,10 +1,11 @@
 """Audit logging for hexarch-ctl commands."""
 
+import json
 import logging
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 from typing import Optional, Any, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 from hexarch_cli.config.schemas import AuditConfig
 
 
@@ -41,11 +42,8 @@ class AuditLogger:
             backupCount=self.config.backup_count
         )
         
-        # Create formatter
-        formatter = logging.Formatter(
-            "[%(asctime)s] %(levelname)-5s %(message)s",
-            datefmt="%Y-%m-%dT%H:%M:%SZ"
-        )
+        # Structured JSON output (one event per line)
+        formatter = logging.Formatter("%(message)s")
         handler.setFormatter(formatter)
         
         self.logger.addHandler(handler)
@@ -59,6 +57,24 @@ class AuditLogger:
             "error": logging.ERROR
         }
         return level_map.get(self.config.log_level, logging.INFO)
+
+    @staticmethod
+    def _utc_now_iso() -> str:
+        return datetime.now(timezone.utc).isoformat()
+
+    def _emit_event(self, event: Dict[str, Any], *, level: str = "info") -> None:
+        """Emit a single structured trace event as JSON."""
+        if not self.logger:
+            return
+
+        payload = dict(event)
+        payload.setdefault("timestamp", self._utc_now_iso())
+
+        line = json.dumps(payload, default=str, separators=(",", ":"))
+        if level == "error":
+            self.logger.error(line)
+        else:
+            self.logger.info(line)
     
     def log_command(
         self,
@@ -80,25 +96,20 @@ class AuditLogger:
         if not self.logger:
             return
         
-        # Build log message
-        parts = [command]
-        
-        if args:
-            arg_str = " ".join(f"--{k}={v}" for k, v in args.items())
-            parts.append(arg_str)
-        
-        if result:
-            parts.append(f"-> {result}")
-        
-        if user:
-            parts.append(f"({user})")
-        
-        message = " ".join(parts)
-        
-        if error:
-            self.logger.error(f"{message} ERROR: {error}")
-        else:
-            self.logger.info(message)
+        event = {
+            "event_type": "cli.command",
+            "input": {
+                "command": command,
+                "args": args or {},
+                "user": user,
+            },
+            "decision": "ERROR" if error else "SUCCESS",
+            "output": {
+                "result": result,
+                "error": error,
+            },
+        }
+        self._emit_event(event, level="error" if error else "info")
     
     def log_api_call(
         self,
@@ -118,16 +129,19 @@ class AuditLogger:
         if not self.logger:
             return
         
-        parts = [f"{method} {endpoint} -> {status}"]
-        if duration_ms:
-            parts.append(f"({duration_ms}ms)")
-        
-        message = " ".join(parts)
-        
-        if status >= 400:
-            self.logger.error(message)
-        else:
-            self.logger.info(message)
+        event = {
+            "event_type": "api.call",
+            "input": {
+                "endpoint": endpoint,
+                "method": method,
+            },
+            "decision": "FAIL" if status >= 400 else "PASS",
+            "output": {
+                "status": status,
+                "duration_ms": duration_ms,
+            },
+        }
+        self._emit_event(event, level="error" if status >= 400 else "info")
 
 
 __all__ = ["AuditLogger"]

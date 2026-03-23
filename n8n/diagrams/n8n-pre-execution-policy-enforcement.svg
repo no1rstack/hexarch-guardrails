@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="340" viewBox="0 0 1200 340">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#111827" />
+    </marker>
+  </defs>
+
+  <rect x="20" y="20" width="1160" height="300" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" />
+
+  <rect x="60" y="130" width="180" height="80" rx="6" ry="6" fill="#f9fafb" stroke="#111827" />
+  <text x="150" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#111827">n8n Trigger</text>
+  <text x="150" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#374151">(manual/webhook)</text>
+
+  <rect x="300" y="130" width="220" height="80" rx="6" ry="6" fill="#f9fafb" stroke="#111827" />
+  <text x="410" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#111827">Policy Check Node</text>
+  <text x="410" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#374151">POST /authorize</text>
+
+  <rect x="580" y="130" width="230" height="80" rx="6" ry="6" fill="#f9fafb" stroke="#111827" />
+  <text x="695" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#111827">Hexarch Policy Engine</text>
+  <text x="695" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#374151">ALLOW / DENY decision</text>
+
+  <rect x="870" y="70" width="260" height="80" rx="6" ry="6" fill="#f9fafb" stroke="#111827" />
+  <text x="1000" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#111827">Continue Execution</text>
+  <text x="1000" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#374151">Call downstream API/tool</text>
+
+  <rect x="870" y="190" width="260" height="80" rx="6" ry="6" fill="#f9fafb" stroke="#111827" />
+  <text x="1000" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#111827">Block Execution</text>
+  <text x="1000" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#374151">Stop branch deterministically</text>
+
+  <line x1="240" y1="170" x2="300" y2="170" stroke="#111827" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="520" y1="170" x2="580" y2="170" stroke="#111827" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="810" y1="160" x2="870" y2="110" stroke="#111827" stroke-width="2" marker-end="url(#arrow)" />
+  <line x1="810" y1="180" x2="870" y2="230" stroke="#111827" stroke-width="2" marker-end="url(#arrow)" />
+
+  <text x="835" y="143" font-family="Arial, sans-serif" font-size="12" fill="#111827">ALLOW</text>
+  <text x="835" y="212" font-family="Arial, sans-serif" font-size="12" fill="#111827">DENY</text>
+</svg>

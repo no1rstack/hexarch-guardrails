@@ -82,7 +82,7 @@ class AuditConfig(BaseModel):
 
 
 class PolicyConfig(BaseModel):
-    """Policy cache configuration."""
+    """Policy cache and runtime configuration."""
     
     model_config = ConfigDict(env_prefix="HEXARCH_POLICY_")
     
@@ -95,6 +95,41 @@ class PolicyConfig(BaseModel):
     validation_strict: bool = Field(
         default=False,
         description="Strict policy validation mode"
+    )
+    profile: str = Field(
+        default="default",
+        description="Default packaged runtime policy profile"
+    )
+    policy_path: Optional[str] = Field(
+        default=None,
+        description="Optional external runtime policy override path"
+    )
+    policy_file: Optional[str] = Field(
+        default=None,
+        description="Default YAML policy file for Guardian-based demos and SDK integrations"
+    )
+    merge_mode: str = Field(
+        default="append",
+        description="Runtime policy merge mode: append or replace",
+        pattern="^(append|replace)$"
+    )
+    engine_mode: str = Field(
+        default="auto",
+        description="Runtime evaluation mode: auto, remote, or local",
+        pattern="^(auto|remote|local)$"
+    )
+    opa_url: str = Field(
+        default="http://localhost:8181",
+        description="Default OPA URL for runtime policy evaluation"
+    )
+    fail_closed: bool = Field(
+        default=True,
+        description="Default runtime failure behavior; true denies on evaluation failure"
+    )
+    runtime_mode: str = Field(
+        default="guardian-yaml",
+        description="Unified runtime mode: guardian-yaml or rego-bundle",
+        pattern="^(guardian-yaml|rego-bundle)$"
     )
 
 

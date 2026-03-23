@@ -280,6 +280,42 @@ class HexarchAPIClient:
             params["group_by"] = group_by
         
         return self.get("/api/decisions/stats", params=params)
+
+    def list_traces(
+        self,
+        entity_type: Optional[str] = None,
+        entity_id: Optional[str] = None,
+        actor_id: Optional[str] = None,
+        action: Optional[str] = None,
+        decision: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[Dict[str, Any]]:
+        """List structured trace events.
+
+        Returns:
+            List of structured trace events with input/decision/output/timestamp.
+        """
+        params: Dict[str, Any] = {
+            "limit": min(limit, 1000),
+            "offset": max(offset, 0),
+        }
+        if entity_type:
+            params["entity_type"] = entity_type
+        if entity_id:
+            params["entity_id"] = entity_id
+        if actor_id:
+            params["actor_id"] = actor_id
+        if action:
+            params["action"] = action
+        if decision:
+            params["decision"] = decision
+
+        return self.get("/api/traces", params=params)
+
+    def get_trace(self, trace_id: str) -> Dict[str, Any]:
+        """Get a single structured trace event by trace id."""
+        return self.get(f"/api/traces/{trace_id}")
     
     def health_check(self) -> bool:
         """Check API health.

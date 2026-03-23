@@ -1,0 +1,236 @@
+{
+    "name": "Hexarch: Pre-Execution Threshold Guard (n8n)",
+    "nodes": [
+        {
+            "parameters": {},
+            "id": "manualTrigger",
+            "name": "Manual Trigger",
+            "type": "n8n-nodes-base.manualTrigger",
+            "typeVersion": 1,
+            "position": [
+                240,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "string": [
+                        {
+                            "name": "hexarchBaseUrl",
+                            "value": "http://host.docker.internal:8099"
+                        },
+                        {
+                            "name": "hexarchToken",
+                            "value": "dev-token"
+                        },
+                        {
+                            "name": "resource",
+                            "value": "external-api"
+                        },
+                        {
+                            "name": "action",
+                            "value": "invoke"
+                        },
+                        {
+                            "name": "message",
+                            "value": "guarded-execution"
+                        }
+                    ],
+                    "number": [
+                        {
+                            "name": "requestCount",
+                            "value": 7
+                        },
+                        {
+                            "name": "threshold",
+                            "value": 5
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "setVars",
+            "name": "Set Vars",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 2,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$json.hexarchBaseUrl + '/authorize'}}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Authorization",
+                            "value": "={{'Bearer ' + $json.hexarchToken}}"
+                        },
+                        {
+                            "name": "X-Actor-Id",
+                            "value": "n8n-user"
+                        },
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "jsonBody": "={\n  \"action\": \"call_provider\",\n  \"resource\": {\"name\": $json.resource},\n  \"context\": {\n    \"provider_action\": $json.action,\n    \"request_count\": $json.requestCount,\n    \"threshold\": $json.threshold\n  }\n}",
+                "options": {
+                    "timeout": 30000
+                }
+            },
+            "id": "authorize",
+            "name": "Hexarch Authorize",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                700,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "boolean": [
+                        {
+                            "value1": "={{$json.allowed}}",
+                            "value2": true
+                        }
+                    ]
+                }
+            },
+            "id": "ifAllowed",
+            "name": "If Allowed",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                940,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "method": "POST",
+                "url": "={{$node['Set Vars'].json.hexarchBaseUrl + '/echo'}}",
+                "sendHeaders": true,
+                "headerParameters": {
+                    "parameters": [
+                        {
+                            "name": "Content-Type",
+                            "value": "application/json"
+                        }
+                    ]
+                },
+                "sendBody": true,
+                "jsonBody": "={\n  \"message\": $node['Set Vars'].json.message,\n  \"metadata\": {\n    \"orchestrator\": \"n8n\",\n    \"workflow\": \"hexarch-pre-execution-threshold-guard\",\n    \"request_count\": $node['Set Vars'].json.requestCount\n  }\n}",
+                "options": {
+                    "timeout": 30000
+                }
+            },
+            "id": "callTarget",
+            "name": "Call Downstream API",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4,
+            "position": [
+                1180,
+                200
+            ]
+        },
+        {
+            "parameters": {
+                "values": {
+                    "boolean": [
+                        {
+                            "name": "blocked",
+                            "value": true
+                        }
+                    ],
+                    "string": [
+                        {
+                            "name": "reason",
+                            "value": "={{$json.reason}}"
+                        },
+                        {
+                            "name": "decision",
+                            "value": "={{$json.decision}}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "blockedResult",
+            "name": "Blocked Result",
+            "type": "n8n-nodes-base.set",
+            "typeVersion": 2,
+            "position": [
+                1180,
+                400
+            ]
+        }
+    ],
+    "connections": {
+        "Manual Trigger": {
+            "main": [
+                [
+                    {
+                        "node": "Set Vars",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Set Vars": {
+            "main": [
+                [
+                    {
+                        "node": "Hexarch Authorize",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Hexarch Authorize": {
+            "main": [
+                [
+                    {
+                        "node": "If Allowed",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "If Allowed": {
+            "main": [
+                [
+                    {
+                        "node": "Call Downstream API",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Blocked Result",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "versionId": "1",
+    "meta": {
+        "templateCredsSetup": "Replace Set Vars token/base URL with n8n credentials or environment variables in production."
+    }
+}

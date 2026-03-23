@@ -1,0 +1,12 @@
+{
+  "name": "token-ceiling",
+  "rule_type": "CONSTRAINT",
+  "description": "Allow only tokens_requested <= 4000",
+  "priority": 20,
+  "enabled": true,
+  "condition": {
+    "field": "input.context.tokens_requested",
+    "op": "lte",
+    "value": 4000
+  }
+}

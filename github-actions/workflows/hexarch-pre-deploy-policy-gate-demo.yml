@@ -1,0 +1,71 @@
+name: Hexarch pre-deploy policy gate demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      risk_score:
+        description: "Demo risk score sent to Hexarch authorize"
+        required: true
+        default: "7"
+      threshold:
+        description: "Threshold included in context for visibility"
+        required: true
+        default: "5"
+
+jobs:
+  guarded-deploy:
+    runs-on: ubuntu-latest
+    env:
+      HEXARCH_API_URL: ${{ secrets.HEXARCH_API_URL }}
+      HEXARCH_API_TOKEN: ${{ secrets.HEXARCH_API_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pre-execution policy check
+        id: guard
+        shell: bash
+        env:
+          INPUT_RISK_SCORE: ${{ github.event.inputs.risk_score }}
+          INPUT_THRESHOLD: ${{ github.event.inputs.threshold }}
+        run: |
+          set -euo pipefail
+
+          payload=$(cat <<JSON
+          {
+            "action": "deploy_release",
+            "resource": { "name": "production-environment" },
+            "context": {
+              "workflow": "hexarch-pre-deploy-policy-gate-demo",
+              "branch": "${GITHUB_REF_NAME}",
+              "environment": "production",
+              "risk_score": ${INPUT_RISK_SCORE},
+              "threshold": ${INPUT_THRESHOLD}
+            }
+          }
+          JSON
+          )
+
+          echo "Submitting authorization request to Hexarch..."
+          response=$(curl --silent --show-error --fail \
+            -X POST "${HEXARCH_API_URL}/authorize" \
+            -H "Authorization: Bearer ${HEXARCH_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$payload")
+
+          echo "response=$response" >> "$GITHUB_OUTPUT"
+
+          allowed=$(python -c "import json,sys; print(str(json.loads(sys.argv[1]).get('allowed', False)).lower())" "$response")
+          echo "allowed=$allowed" >> "$GITHUB_OUTPUT"
+
+          if [ "$allowed" != "true" ]; then
+            echo "Hexarch denied deployment."
+            echo "$response"
+            exit 1
+          fi
+
+      - name: Simulated deploy step
+        if: steps.guard.outputs.allowed == 'true'
+        run: |
+          echo "Deployment allowed by Hexarch."
+          echo "Deploying release..."

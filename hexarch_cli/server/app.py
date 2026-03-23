@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import logging
+import logging.config
 import os
+import html
 import uuid
-from typing import Iterator, Optional
+from typing import Any, Iterator, Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -24,6 +28,7 @@ from hexarch_cli.models.audit import AuditAction, AuditService
 from hexarch_cli.server.enforcement import authorize_request
 from hexarch_cli.server.middleware import RateLimitMiddleware, RequestIdMiddleware, SecurityHeadersMiddleware
 from hexarch_cli.server.security import is_api_key_admin_enabled, is_docs_enabled
+from hexarch_cli.server.demo_auth import issue_demo_bootstrap_token, exchange_demo_token, require_demo_session
 from hexarch_cli.server.enforcement import (
     authenticate_request,
     build_policy_context,
@@ -54,6 +59,12 @@ from hexarch_cli.server.schemas import (
     AuthorizeResponse,
     ProviderCallCreate,
     ProviderCallOut,
+    DemoSessionCreateResponse,
+    DemoExchangeRequest,
+    DemoExchangeResponse,
+    DemoPolicyOut,
+    DemoEvaluateRequest,
+    DemoEvaluateResponse,
 )
 
 
@@ -62,6 +73,18 @@ def _parse_cors_origins() -> list[str]:
     if not raw:
         return []
     return [o.strip() for o in raw.split(",") if o.strip()]
+
+
+def _configure_trace_logger() -> None:
+    """Ensure hexarch.trace emits JSON lines to stdout at INFO level."""
+    logger = logging.getLogger("hexarch.trace")
+    if logger.handlers:
+        return  # already configured
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
 
 
 def get_session() -> Iterator[Session]:
@@ -76,6 +99,8 @@ def create_app(init_db: bool = False) -> FastAPI:
     DatabaseManager.initialize()
     if init_db:
         DatabaseManager.create_all()
+
+    _configure_trace_logger()
 
     docs_enabled = is_docs_enabled()
     app = FastAPI(
@@ -182,6 +207,189 @@ def create_app(init_db: bool = False) -> FastAPI:
         # Public utility endpoint used for local workflow smoke tests.
         return EchoResponse(ok=True, message=payload.message, metadata=payload.metadata)
 
+    @app.post("/api/demo/session", response_model=DemoSessionCreateResponse)
+    def create_demo_session(request: Request):
+        """Public demo onboarding endpoint. Issues a short-lived bootstrap token."""
+        payload = issue_demo_bootstrap_token(request=request, ttl_seconds=30 * 60)
+        return DemoSessionCreateResponse(**payload)
+
+    @app.post("/api/demo/exchange", response_model=DemoExchangeResponse)
+    def exchange_demo_session(request: Request, body: DemoExchangeRequest):
+        """Exchange bootstrap demo token for a short-lived constrained session token."""
+        payload = exchange_demo_token(request=request, token=body.token, ttl_seconds=15 * 60)
+        return DemoExchangeResponse(**payload)
+
+    @app.get("/demo")
+    def demo_page(token: Optional[str] = Query(default=None)) -> HTMLResponse:
+        """Minimal sandbox onboarding page that exchanges token immediately."""
+        escaped_token = html.escape(token or "")
+        html_doc = f"""
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Hexarch Demo Sandbox</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+        <style>
+            body {{
+                min-height: 100vh;
+                background: radial-gradient(circle at top left, #2d1b69 0%, #111827 45%, #030712 100%);
+            }}
+            .glass {{
+                background: rgba(17, 24, 39, 0.72);
+                border: 1px solid rgba(148, 163, 184, 0.25);
+                backdrop-filter: blur(8px);
+            }}
+            .badge-soft {{
+                background: rgba(56, 189, 248, 0.16);
+                color: #bae6fd;
+                border: 1px solid rgba(56, 189, 248, 0.35);
+            }}
+        </style>
+    </head>
+    <body class="d-flex align-items-center py-5">
+        <main class="container py-4">
+            <div class="row justify-content-center g-4">
+                <div class="col-lg-8 col-xl-7">
+                    <div class="glass rounded-4 p-4 p-md-5 shadow-lg">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <h1 class="h3 mb-0">Hexarch Demo Sandbox</h1>
+                            <span class="badge badge-soft rounded-pill px-3 py-2">Demo Session</span>
+                        </div>
+                        <p class="text-secondary mb-4">
+                            Secure onboarding is active. We are exchanging your bootstrap token for a short-lived sandbox session.
+                        </p>
+
+                        <div id="statusBox" class="alert alert-info mb-4" role="status">
+                            Exchanging demo token...
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3 border border-secondary-subtle h-100">
+                                    <div class="fw-semibold">One-time exchange</div>
+                                    <small class="text-secondary">Bootstrap token can only be exchanged once.</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3 border border-secondary-subtle h-100">
+                                    <div class="fw-semibold">Scoped session</div>
+                                    <small class="text-secondary">Session token is restricted to demo routes.</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3 border border-secondary-subtle h-100">
+                                    <div class="fw-semibold">Sandboxed eval</div>
+                                    <small class="text-secondary">No production writes. Destructive actions are denied.</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button id="refreshBtn" type="button" class="btn btn-outline-light btn-sm">Re-check session</button>
+                            <button id="copyBtn" type="button" class="btn btn-primary btn-sm" disabled>Copy session token</button>
+                        </div>
+
+                        <p class="text-secondary mt-4 mb-0 small">
+                            Template style adapted from Bootstrap examples (MIT).
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <script>
+            const statusBox = document.getElementById('statusBox');
+            const copyBtn = document.getElementById('copyBtn');
+            const refreshBtn = document.getElementById('refreshBtn');
+
+            async function exchangeToken() {{
+                const url = new URL(window.location.href);
+                const token = url.searchParams.get('token') || {escaped_token!r};
+                if (!token) {{
+                    statusBox.className = 'alert alert-warning mb-4';
+                    statusBox.textContent = 'Missing demo token in URL.';
+                    copyBtn.disabled = true;
+                    return;
+                }}
+
+                const res = await fetch('/api/demo/exchange', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    body: JSON.stringify({{ token }})
+                }});
+
+                if (!res.ok) {{
+                    statusBox.className = 'alert alert-danger mb-4';
+                    statusBox.textContent = 'Token exchange failed or expired. Please start a new demo session.';
+                    copyBtn.disabled = true;
+                    return;
+                }}
+
+                const data = await res.json();
+                window.__hexarchDemoSession = data;
+                statusBox.className = 'alert alert-success mb-4';
+                statusBox.textContent = `Sandbox session active (expires in ${{data.expires_in}}s).`;
+                copyBtn.disabled = false;
+            }}
+
+            refreshBtn.addEventListener('click', async () => {{
+                await exchangeToken();
+            }});
+
+            copyBtn.addEventListener('click', async () => {{
+                const token = window.__hexarchDemoSession?.session_token;
+                if (!token) return;
+                await navigator.clipboard.writeText(token);
+                copyBtn.textContent = 'Copied';
+                setTimeout(() => copyBtn.textContent = 'Copy session token', 1200);
+            }});
+
+            exchangeToken();
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    </body>
+</html>
+""".strip()
+        return HTMLResponse(content=html_doc)
+
+    @app.get("/demo/policies", response_model=list[DemoPolicyOut])
+    def demo_policies(request: Request):
+        """Sandbox-safe policy list. No production DB access."""
+        require_demo_session(request)
+        return [
+            DemoPolicyOut(id="demo-read", name="Demo Read Policy", description="Allows safe read/evaluate actions."),
+            DemoPolicyOut(id="demo-deny-destructive", name="Demo Destructive Guard", description="Denies destructive actions in sandbox."),
+        ]
+
+    @app.post("/demo/evaluate", response_model=DemoEvaluateResponse)
+    def demo_evaluate(request: Request, payload: DemoEvaluateRequest):
+        """Sandbox-only evaluator with synthetic non-persistent behavior."""
+        require_demo_session(request)
+
+        action = (payload.action or "").strip().lower()
+        resource = (payload.resource or "").strip().lower()
+        text = f"{action} {resource}"
+
+        destructive = any(word in text for word in ["delete", "drop", "revoke", "truncate", "admin", "write"])
+        if destructive:
+            return DemoEvaluateResponse(
+                allowed=False,
+                decision="DENY",
+                reason="Sandbox denies destructive operations.",
+                sandboxed=True,
+                persisted=False,
+            )
+
+        return DemoEvaluateResponse(
+            allowed=True,
+            decision="ALLOW",
+            reason="Sandbox policy allows this demo action.",
+            sandboxed=True,
+            persisted=False,
+        )
+
     @app.post("/authorize", response_model=AuthorizeResponse)
     def authorize(payload: AuthorizeRequest, request: Request, session: Session = Depends(get_session)):
         # This endpoint is for asking "what would happen"; it authenticates but does not
@@ -269,6 +477,83 @@ def create_app(init_db: bool = False) -> FastAPI:
             .filter(AuditLog.entity_type == "ProviderCall")
         )
         return q.order_by(AuditLog.created_at.desc()).offset(offset).limit(limit).all()
+
+    def _to_trace_event(log: AuditLog) -> dict[str, Any]:
+        changes = log.changes if isinstance(log.changes, dict) else {}
+        audit_context = log.audit_context if isinstance(log.audit_context, dict) else {}
+        decision = (
+            changes.get("decision")
+            or changes.get("state")
+            or ("ERROR" if str(log.action).upper() in {"DELETE", "HARD_DELETE", "REVOKE", "REJECT"} else "RECORDED")
+        )
+
+        return {
+            "trace_id": log.id,
+            "timestamp": log.created_at.isoformat() if log.created_at else None,
+            "input": {
+                "entity_type": log.entity_type,
+                "entity_id": log.entity_id,
+                "action": log.action,
+                "context": audit_context,
+            },
+            "decision": decision,
+            "output": {
+                "changes": changes,
+                "reason": log.reason,
+            },
+            "actor": {
+                "actor_id": log.actor_id,
+                "actor_type": log.actor_type,
+            },
+        }
+
+    @app.get("/traces")
+    @app.get("/api/traces")
+    def list_traces(
+        request: Request,
+        entity_type: Optional[str] = Query(default=None),
+        entity_id: Optional[str] = Query(default=None),
+        actor_id: Optional[str] = Query(default=None),
+        action: Optional[str] = Query(default=None),
+        decision: Optional[str] = Query(default=None),
+        limit: int = Query(default=50, ge=1, le=200),
+        offset: int = Query(default=0, ge=0, le=10_000),
+        session: Session = Depends(get_session),
+        _identity=Depends(enforced_identity),
+    ) -> list[dict[str, Any]]:
+        """List structured trace events from persisted audit logs."""
+        q = session.query(AuditLog).filter(AuditLog.is_deleted == False)
+        if entity_type:
+            q = q.filter(AuditLog.entity_type == entity_type)
+        if entity_id:
+            q = q.filter(AuditLog.entity_id == entity_id)
+        if actor_id:
+            q = q.filter(AuditLog.actor_id == actor_id)
+        if action:
+            q = q.filter(AuditLog.action == action)
+
+        logs = q.order_by(AuditLog.created_at.desc()).offset(offset).limit(limit).all()
+        events = [_to_trace_event(log) for log in logs]
+
+        if decision:
+            wanted = decision.upper()
+            events = [e for e in events if str(e.get("decision", "")).upper() == wanted]
+
+        return events
+
+    @app.get("/traces/{trace_id}")
+    @app.get("/api/traces/{trace_id}")
+    def get_trace(
+        trace_id: str,
+        request: Request,
+        session: Session = Depends(get_session),
+        _identity=Depends(enforced_identity),
+    ) -> dict[str, Any]:
+        """Get one structured trace event by trace ID."""
+        log = session.query(AuditLog).filter(AuditLog.id == trace_id, AuditLog.is_deleted == False).first()
+        if not log:
+            raise HTTPException(status_code=404, detail="Trace not found")
+        return _to_trace_event(log)
 
     # Rules
     @app.get("/rules", response_model=list[RuleOut])

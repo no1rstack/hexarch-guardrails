@@ -1,0 +1,10 @@
+{
+  "action": "invoke_provider",
+  "resource": { "name": "llm-provider" },
+  "context": {
+    "provider_action": "{{ $flow.state.providerAction }}",
+    "prompt": "{{ $flow.state.userPrompt }}",
+    "risk_score": "{{ $flow.state.riskScore }}",
+    "workflow": "flowise-pre-execution-gate"
+  }
+}

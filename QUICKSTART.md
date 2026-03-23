@@ -3,7 +3,7 @@
 ## 🚀 Installation
 
 ```bash
-# Install from PyPI (when published)
+# Install from PyPI
 pip install hexarch-guardrails
 
 # Or install from source
@@ -58,6 +58,12 @@ response = call_openai("Hello GPT-4!")
 
 ```bash
 python your_script.py
+```
+
+If OPA is not running yet, start it first:
+
+```bash
+docker run -p 8181:8181 openpolicyagent/opa:latest run --server
 ```
 
 That's it! 🎉
@@ -410,9 +416,9 @@ MIT License - see LICENSE file
 
 ## 🎓 Next Steps
 
-1. **Read the [Policy Authoring Guide](../docs/POLICY_GUIDE.md)** to create custom policies
-2. **Check the [API Reference](../docs/API_REFERENCE.md)** for full API docs
-3. **Explore [examples](../examples/)** for your use case
+1. **Read the [Policy Authoring Guide](./docs/POLICY_GUIDE.md)** to create custom policies
+2. **Check the [API Reference](./docs/API_REFERENCE.md)** for full API docs
+3. **Explore [examples](./examples/)** for your use case
 4. **Join our community** and share what you build!
 
 Happy guarding! 🛡️

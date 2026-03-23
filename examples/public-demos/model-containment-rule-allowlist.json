@@ -1,0 +1,15 @@
+{
+  "name": "model-allowlist",
+  "rule_type": "CONSTRAINT",
+  "description": "Allow only approved models",
+  "priority": 10,
+  "enabled": true,
+  "condition": {
+    "field": "input.context.model",
+    "op": "in",
+    "value": [
+      "gpt-4o-mini",
+      "llama3"
+    ]
+  }
+}

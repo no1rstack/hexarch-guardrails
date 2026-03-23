@@ -1,0 +1,8 @@
+{
+  "userPrompt": "Summarize the incident report and suggest next steps.",
+  "providerAction": "llm_completion",
+  "riskScore": 7,
+  "allowed": false,
+  "denyReason": "",
+  "authResponse": {}
+}

@@ -10,10 +10,8 @@ package guardrails
 
 import future.keywords
 
-evaluate {
-    input.policy_id == "api_budget"
-    allowed := true
-    reason := "Budget check passed"
+evaluate := {"allowed": true, "reason": "Budget check passed"} if {
+  input.policy_id == "api_budget"
 }
 """,
     "rate_limit": """
@@ -23,10 +21,8 @@ package guardrails
 
 import future.keywords
 
-evaluate {
-    input.policy_id == "rate_limit"
-    allowed := true
-    reason := "Within rate limits"
+evaluate := {"allowed": true, "reason": "Within rate limits"} if {
+  input.policy_id == "rate_limit"
 }
 """,
     "safe_delete": """
@@ -36,10 +32,8 @@ package guardrails
 
 import future.keywords
 
-evaluate {
-    input.policy_id == "safe_delete"
-    allowed := true
-    reason := "Deletion allowed"
+evaluate := {"allowed": true, "reason": "Deletion allowed"} if {
+  input.policy_id == "safe_delete"
 }
 """
 }

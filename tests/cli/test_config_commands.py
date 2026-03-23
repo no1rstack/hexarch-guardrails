@@ -89,6 +89,35 @@ def test_config_set_updates_file(cli_runner, test_config):
         assert data["output"]["format"] == "csv"
 
 
+def test_config_set_updates_runtime_policy_defaults(cli_runner, test_config):
+    with cli_runner.isolated_filesystem():
+        config_path = Path("config.yml")
+        with open(config_path, "w") as f:
+            yaml.safe_dump(test_config.model_dump(exclude_none=True), f, default_flow_style=False)
+
+        with patch.object(ConfigManager, "DEFAULT_CONFIG_FILE", config_path):
+            result = cli_runner.invoke(cli, [
+                "config", "set",
+                "--policy-profile", "strict",
+                "--policy-file", "./hexarch.yaml",
+                "--policy-merge-mode", "replace",
+                "--policy-engine-mode", "local",
+                "--policy-runtime-mode", "rego-bundle",
+                "--policy-opa-url", "http://localhost:8282",
+                "--policy-fail-closed",
+            ])
+
+        assert result.exit_code == 0
+        data = yaml.safe_load(config_path.read_text())
+        assert data["policies"]["profile"] == "strict"
+        assert data["policies"]["policy_file"] == "./hexarch.yaml"
+        assert data["policies"]["merge_mode"] == "replace"
+        assert data["policies"]["engine_mode"] == "local"
+        assert data["policies"]["runtime_mode"] == "rego-bundle"
+        assert data["policies"]["opa_url"] == "http://localhost:8282"
+        assert data["policies"]["fail_closed"] is True
+
+
 def test_config_set_no_updates(cli_runner):
     result = cli_runner.invoke(cli, ["config", "set"])
     assert result.exit_code == 0

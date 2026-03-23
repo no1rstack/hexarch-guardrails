@@ -19,8 +19,10 @@
 - [QUICKSTART.md](QUICKSTART.md) - 5-minute tutorial
 
 ### Comprehensive Guides
-- [docs/API_REFERENCE.md](docs/API_REFERENCE.md) - Complete API (500 lines)
+- [docs/API_REFERENCE.md](docs/API_REFERENCE.md) - Complete SDK API reference
 - [docs/INTEGRATION_GUIDE.md](docs/INTEGRATION_GUIDE.md) - 12 integration patterns
+- [docs/PUBLIC_DOCUMENTATION.md](docs/PUBLIC_DOCUMENTATION.md) - Public technical overview
+- [docs/TECHNICAL_SOURCE_DOCUMENTATION.md](docs/TECHNICAL_SOURCE_DOCUMENTATION.md) - Service endpoints and implementation details
 - [FILE_MANIFEST.md](FILE_MANIFEST.md) - File-by-file description
 
 ### Status & Delivery
@@ -88,6 +90,13 @@ Real-world use cases - copy and adapt:
    - Use: Require confirmation for deletes
    - Pattern: `@guardian.check("safe_delete")`
 
+4. **TinyLlama / Local Model Guardrails** 🧠
+  - File: [examples/tinyllama_guardrails.py](examples/tinyllama_guardrails.py)
+  - Use: Guard local model inference with the same policy layer
+  - Pattern: `@guardian.check(...)`
+
+Additional orchestrator and workflow demos live under [examples/public-demos/](examples/public-demos/).
+
 ---
 
 ## 🧪 TESTS
@@ -118,7 +127,11 @@ Test Files:
 ### Package Configuration
 - **setup.py** - PyPI package configuration
   - Ready to publish: `python setup.py sdist bdist_wheel`
-  - Dependencies: requests, pyyaml, python-dotenv
+  - Version metadata mirrors `pyproject.toml` and `hexarch_guardrails/__init__.py`
+
+- **pyproject.toml** - Canonical package metadata
+  - Current package version and dependency definitions
+  - Optional extras for `cli`, `server`, `credibility`, `dev`, and `postgres`
   
 - **pytest.ini** - Test configuration
   - Auto-discovers tests in `tests/` directory
@@ -134,7 +147,7 @@ Test Files:
 | Category | Details |
 |----------|---------|
 | **Core Code** | 5 files, ~620 lines |
-| **Examples** | 3 files, ~115 lines |
+| **Examples** | 4 curated SDK examples + public demo assets |
 | **Tests** | 3 files, ~390 lines, 30+ cases |
 | **Docs** | 8+ files, ~2000 lines |
 | **Total** | ~3,125 lines of code + docs |
@@ -247,7 +260,7 @@ Reference [docs/INTEGRATION_GUIDE.md](docs/INTEGRATION_GUIDE.md) for full K8s ex
 ## 📁 FILE TREE
 
 ```
-hexarch-guardrails-py/
+hexarch-guardrails/
 ├── Core Library
 │   ├── hexarch_guardrails/guardian.py        ⭐ Main class
 │   ├── hexarch_guardrails/opa_client.py      🔗 OPA integration
@@ -257,7 +270,9 @@ hexarch-guardrails-py/
 ├── Examples
 │   ├── examples/openai_budget.py             💰
 │   ├── examples/discord_ratelimit.py         🤖
-│   └── examples/safe_delete.py               🗑️
+│   ├── examples/safe_delete.py               🗑️
+│   ├── examples/tinyllama_guardrails.py      🧠
+│   └── examples/public-demos/                🌐
 ├── Tests
 │   ├── tests/test_guardian.py                ✅
 │   ├── tests/test_opa_client.py              ✅

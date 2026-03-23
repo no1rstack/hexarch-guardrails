@@ -23,7 +23,7 @@ def upgrade() -> None:
         sa.Column("chain_id", sa.String(64), nullable=False),
         sa.Column("last_entry_hash", sa.String(64), nullable=True),
         sa.Column("canonical_payload", sa.Text(), nullable=False),
-        sa.Column("signed", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        sa.Column("signed", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column("key_id", sa.String(64), nullable=True),
         sa.Column("signature", sa.String(128), nullable=True),
         sa.Column("actor_id", sa.String(255), nullable=False),

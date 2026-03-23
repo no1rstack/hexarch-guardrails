@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import logging
 import os
 import hmac
 import hashlib
@@ -14,6 +16,21 @@ from hexarch_cli.models.audit import AuditAction, AuditService
 from hexarch_cli.models.api_key import ApiKey
 from hexarch_cli.models.policy import Policy, PolicyScope
 from hexarch_cli.server.security import get_api_token, is_api_key_admin_enabled, is_auth_required
+
+_trace_logger = logging.getLogger("hexarch.trace")
+
+
+def _emit_trace(event: str, *, input: dict, decision: str, output: dict, actor: dict) -> None:
+    """Emit a single structured JSON trace line to the hexarch.trace logger."""
+    payload = {
+        "event": event,
+        "timestamp": datetime.now(UTC).isoformat(),
+        "input": input,
+        "decision": decision,
+        "output": output,
+        "actor": actor,
+    }
+    _trace_logger.info(json.dumps(payload, default=str, separators=(",", ":")))
 
 
 @dataclass(frozen=True)
@@ -212,6 +229,13 @@ def enforce_scopes(*, request: Request, session: Session, identity: Identity) ->
             session.commit()
         except Exception:
             session.rollback()
+        _emit_trace(
+            "scope.enforce",
+            input={"method": request.method, "path": request.url.path, "required_scopes": ["admin"]},
+            decision="DENY",
+            output={"reason": "api_key_admin_requires_admin_token"},
+            actor={"actor_id": identity.actor_id, "actor_type": identity.actor_type},
+        )
         raise HTTPException(status_code=403, detail="API key admin requires admin token")
 
     required = _required_scopes_for_request(request)
@@ -246,7 +270,13 @@ def enforce_scopes(*, request: Request, session: Session, identity: Identity) ->
         session.commit()
     except Exception:
         session.rollback()
-
+    _emit_trace(
+        "scope.enforce",
+        input={"method": request.method, "path": request.url.path, "required_scopes": required, "present_scopes": sorted(present)},
+        decision="DENY",
+        output={"reason": "scope_denied"},
+        actor={"actor_id": identity.actor_id, "actor_type": identity.actor_type},
+    )
     raise HTTPException(status_code=403, detail="Insufficient scope")
 
 
@@ -400,4 +430,16 @@ def evaluate_policies(
     except Exception:
         session.rollback()
 
+    _emit_trace(
+        "policy.evaluate",
+        input={
+            "method": request.method,
+            "path": request.url.path,
+            "policies": policy_ids,
+            "context": ctx,
+        },
+        decision="ALLOW" if allowed else "DENY",
+        output={"reason": deny_reason, "policies_evaluated": len(applicable)},
+        actor={"actor_id": identity.actor_id, "actor_type": identity.actor_type},
+    )
     return allowed, deny_reason, policy_ids

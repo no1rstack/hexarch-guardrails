@@ -109,6 +109,14 @@ def config_init(click_ctx: click.Context, output_path: Optional[str]) -> None:
 @click.option("--api-url", type=str, default=None, help="Set API URL")
 @click.option("--api-token", type=str, default=None, help="Set API token")
 @click.option("--format", "output_format", type=click.Choice(["json", "table", "csv"]), default=None, help="Set output format")
+@click.option("--policy-profile", type=str, default=None, help="Set default packaged runtime policy profile")
+@click.option("--policy-path", type=str, default=None, help="Set default external runtime policy path")
+@click.option("--policy-file", type=str, default=None, help="Set default YAML policy file for Guardian-based demos")
+@click.option("--policy-merge-mode", type=click.Choice(["append", "replace"]), default=None, help="Set default runtime policy merge mode")
+@click.option("--policy-engine-mode", type=click.Choice(["auto", "remote", "local"]), default=None, help="Set default runtime policy engine mode")
+@click.option("--policy-runtime-mode", type=click.Choice(["guardian-yaml", "rego-bundle"]), default=None, help="Set unified runtime mode")
+@click.option("--policy-opa-url", type=str, default=None, help="Set default OPA URL for runtime policy evaluation")
+@click.option("--policy-fail-open/--policy-fail-closed", default=None, help="Set default runtime policy failure behavior")
 @click.option("--db-url", type=str, default=None, help="Set database URL")
 @click.option("--db-provider", type=click.Choice(["sqlite", "postgresql"]), default=None, help="Set database provider")
 @click.option("--db-path", type=str, default=None, help="Set SQLite database path")
@@ -120,6 +128,14 @@ def config_set(
     api_url: Optional[str],
     api_token: Optional[str],
     output_format: Optional[str],
+    policy_profile: Optional[str],
+    policy_path: Optional[str],
+    policy_file: Optional[str],
+    policy_merge_mode: Optional[str],
+    policy_engine_mode: Optional[str],
+    policy_runtime_mode: Optional[str],
+    policy_opa_url: Optional[str],
+    policy_fail_open: Optional[bool],
     db_url: Optional[str],
     db_provider: Optional[str],
     db_path: Optional[str],
@@ -147,6 +163,30 @@ def config_set(
         if output_format:
             config.output.format = output_format
             updates["format"] = output_format
+        if policy_profile:
+            config.policies.profile = policy_profile
+            updates["policy_profile"] = policy_profile
+        if policy_path is not None:
+            config.policies.policy_path = policy_path or None
+            updates["policy_path"] = policy_path or None
+        if policy_file is not None:
+            config.policies.policy_file = policy_file or None
+            updates["policy_file"] = policy_file or None
+        if policy_merge_mode:
+            config.policies.merge_mode = policy_merge_mode
+            updates["policy_merge_mode"] = policy_merge_mode
+        if policy_engine_mode:
+            config.policies.engine_mode = policy_engine_mode
+            updates["policy_engine_mode"] = policy_engine_mode
+        if policy_runtime_mode:
+            config.policies.runtime_mode = policy_runtime_mode
+            updates["policy_runtime_mode"] = policy_runtime_mode
+        if policy_opa_url:
+            config.policies.opa_url = policy_opa_url
+            updates["policy_opa_url"] = policy_opa_url
+        if policy_fail_open is not None:
+            config.policies.fail_closed = not policy_fail_open
+            updates["policy_fail_closed"] = config.policies.fail_closed
         if db_url is not None:
             config.db.url = db_url or None
             updates["db_url"] = db_url or None

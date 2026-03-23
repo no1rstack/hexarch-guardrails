@@ -281,3 +281,43 @@ class ProviderCallOut(BaseModel):
     resource: str
     action: str
     ok: bool
+
+
+class DemoSessionCreateResponse(BaseModel):
+    token: str
+    expires_in: int
+    session_id: str
+    issued_at: int
+    expires_at: int
+
+
+class DemoExchangeRequest(BaseModel):
+    token: str
+
+
+class DemoExchangeResponse(BaseModel):
+    session_token: str
+    expires_in: int
+    session_id: str
+    issued_at: int
+    expires_at: int
+
+
+class DemoPolicyOut(BaseModel):
+    id: str
+    name: str
+    description: Optional[str] = None
+
+
+class DemoEvaluateRequest(BaseModel):
+    action: str = "evaluate"
+    resource: Optional[str] = None
+    payload: Optional[dict[str, Any]] = None
+
+
+class DemoEvaluateResponse(BaseModel):
+    allowed: bool
+    decision: str
+    reason: str
+    sandboxed: bool = True
+    persisted: bool = False

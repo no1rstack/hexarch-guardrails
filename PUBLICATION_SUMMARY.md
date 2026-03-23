@@ -1,7 +1,9 @@
 # Hexarch Guardrails - Publication Summary
 
-**Date:** January 29, 2026  
-**Status:** ✅ FULLY PUBLISHED
+**Date:** March 22, 2026  
+**Status:** ✅ Published and actively versioned
+
+> Source of truth for current package metadata is `pyproject.toml`, `setup.py`, `hexarch_guardrails/__init__.py`, and `CHANGELOG.md`.
 
 ---
 
@@ -10,15 +12,15 @@
 ### 1. PyPI (Primary - LIVE ✅)
 - **Package:** https://pypi.org/project/hexarch-guardrails/
 - **Installation:** `pip install hexarch-guardrails`
-- **Version:** 0.1.0
+- **Current package version:** 0.4.1
 - **License:** MIT
-- **Status:** Public and available globally
+- **Status:** Public distribution channel
 
 ### 2. GitHub Repository (LIVE ✅)
 - **URL:** https://github.com/no1rstack/hexarch-guardrails
 - **Branch:** main (default)
 - **Status:** Public, all files committed
-- **Releases:** Ready for v0.1.0 tag
+- **Releases:** Versioned via tags and release notes in the repository
 
 ### 3. GitHub Packages (Configured ✅)
 - **Status:** Ready for publication
@@ -33,8 +35,8 @@
 - ✅ README.md - Getting started guide
 - ✅ LICENSE - MIT License (Noir Stack LLC)
 - ✅ CHANGELOG.md - Version history
-- ✅ RELEASE_v0.1.0.md - Detailed release notes
-- ✅ RELEASES.md - Distribution guide
+- ✅ RELEASE_NOTES.md / release-specific notes - Release documentation
+- ✅ docs/ - API, integration, validation, and technical documentation
 
 ### Configuration
 - ✅ pyproject.toml - Modern Python packaging metadata
@@ -55,13 +57,13 @@
 
 ```
 Name: hexarch-guardrails
-Version: 0.1.0
+Version: 0.4.1
 License: MIT © Noir Stack LLC
 Author: Noir Stack (hira@noirstack.com)
 Home: https://www.noirstack.com/
 Repository: https://github.com/no1rstack/hexarch-guardrails
-Python: 3.8, 3.9, 3.10, 3.11
-Status: Alpha (production-ready SDK)
+Python: 3.8, 3.9, 3.10, 3.11, 3.12
+Status: Beta (production-ready package)
 ```
 
 ---
@@ -69,53 +71,39 @@ Status: Alpha (production-ready SDK)
 ## Distribution Artifacts
 
 ### Wheel (Binary Distribution)
-- File: `hexarch_guardrails-0.1.0-py3-none-any.whl`
-- Size: 17 KB
-- Type: Universal Python 3
-- Location: PyPI
-- Installation: `pip install hexarch_guardrails-0.1.0-py3-none-any.whl`
+- File pattern: `hexarch_guardrails-<version>-py3-none-any.whl`
+- Type: Universal Python 3 wheel
+- Location: PyPI / GitHub release assets when attached
 
 ### Source Distribution
-- File: `hexarch_guardrails-0.1.0.tar.gz`
-- Size: 13 KB
-- Type: Gzip-compressed tarball
-- Location: PyPI
-- Installation: `pip install hexarch_guardrails-0.1.0.tar.gz`
+- File pattern: `hexarch_guardrails-<version>.tar.gz`
+- Type: Source distribution
+- Location: PyPI / GitHub release assets when attached
 
 Both distributions include:
-- Core library (5 modules)
-- Examples (4 integrations)
-- Tests (30+ unit tests)
-- Documentation (README, LICENSE, setup files)
+- Core library
+- CLI and server modules
+- Examples and demos
+- Tests
+- Documentation
 
 ---
 
 ## Creating the GitHub Release
 
-To create the official GitHub Release for v0.1.0:
-
-### Option 1: Manual (via GitHub UI) - 2 minutes
-1. Visit https://github.com/no1rstack/hexarch-guardrails
-2. Go to "Releases" section
-3. Click "Create a new release"
-4. Fill in:
-   - Tag version: `v0.1.0`
-   - Release title: `v0.1.0 - Initial Release`
-   - Description: Copy from `RELEASE_v0.1.0.md`
-5. Upload assets: wheel + sdist files
-6. Click "Publish release"
-
-### Option 2: Automated (via Git tag) - Recommended
+### Automated (via Git tag) - Recommended
 ```bash
-# In hexarch-guardrails-py directory
-git tag v0.1.0
-git push origin v0.1.0
+# In the repository root
+git tag v0.4.1
+git push origin v0.4.1
 
 # GitHub Actions triggers automatically:
 # 1. Build package (python -m build)
 # 2. Upload to PyPI (twine upload)
 # 3. Create GitHub Release with assets
 ```
+
+For future releases, replace `v0.4.1` with the next package version and update `CHANGELOG.md` / release notes first.
 
 ---
 
@@ -126,13 +114,13 @@ git push origin v0.1.0
 pip install hexarch-guardrails
 ```
 
-### From GitHub Releases (Once v0.1.0 released)
+### From GitHub Releases
 ```bash
 # Download wheel from GitHub Release page
-pip install hexarch_guardrails-0.1.0-py3-none-any.whl
+pip install hexarch_guardrails-<version>-py3-none-any.whl
 
 # Or source distribution
-pip install hexarch_guardrails-0.1.0.tar.gz
+pip install hexarch_guardrails-<version>.tar.gz
 ```
 
 ### From Source (Development)
@@ -154,7 +142,7 @@ python -c "from hexarch_guardrails import Guardian; print(Guardian.__doc__)"
 ### Check Version
 ```bash
 python -c "import hexarch_guardrails; print(hexarch_guardrails.__version__)"
-# Output: 0.1.0
+# Output: 0.4.1
 ```
 
 ### Run Tests
@@ -165,22 +153,12 @@ pytest tests/
 
 ---
 
-## Next Version Planning
+## Release Planning
 
-### v0.2.0 (Coming)
-- Evidence Export Endpoint
-- Decision history REST API
-- Compliance reporting features
-
-### v0.3.0 (Coming)
-- Admin CLI (hexarch-ctl)
-- Policy inspection commands
-- Local policy testing
-
-### v1.0.0 (Coming)
-- Policy Authoring UI
-- Web-based policy builder
-- Versioning and rollout management
+- Use `CHANGELOG.md` as the public change log
+- Use `RELEASE_NOTES.md` and versioned release notes for release-specific detail
+- Validate README install and demo paths before tagging
+- Confirm package version alignment across `pyproject.toml`, `setup.py`, and `hexarch_guardrails/__init__.py`
 
 ---
 
@@ -195,12 +173,12 @@ pytest tests/
 
 ## Summary
 
-✅ **Python SDK published to PyPI**  
+✅ **Package published to PyPI**  
 ✅ **Source code in public GitHub repository**  
 ✅ **Release documentation prepared**  
 ✅ **Automated publishing workflow configured**  
-✅ **Package metadata verified**  
+✅ **Current package metadata aligned to 0.4.1**  
 
-**Status: Ready for production use**
+**Status: Ready for public distribution and ongoing releases**
 
 Installation: `pip install hexarch-guardrails`

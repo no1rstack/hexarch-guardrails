@@ -1,0 +1,11 @@
+{
+  "action": "invoke_provider",
+  "resource": { "name": "llm-provider" },
+  "context": {
+    "client": "langflow",
+    "provider_action": "chat_completion",
+    "risk_score": 7,
+    "threshold": 5,
+    "workflow": "langflow-pre-execution-policy-gate-demo"
+  }
+}

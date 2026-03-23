@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 def _env(monkeypatch):
     monkeypatch.setenv("DATABASE_URL", "sqlite:///:memory:")
     monkeypatch.setenv("HEXARCH_API_TOKEN", "dev-token")
+    monkeypatch.setenv("HEXARCH_API_ALLOW_ANON", "false")
     # keep bootstrap on for initial policy creation
     monkeypatch.setenv("HEXARCH_BOOTSTRAP_ALLOW", "true")
     # Key management endpoints are disabled by default; enable for tests that cover them.

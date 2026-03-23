@@ -1,12 +1,12 @@
-🛡️ **HEXARCH GUARDRAILS - PYTHON SDK**
-**Individual Edition MVP - Production Ready**
+🛡️ **HEXARCH GUARDRAILS - PYTHON PACKAGE**
+**SDK + CLI + API Service - Production Ready**
 
 ═══════════════════════════════════════════════════════════════
 
 ## 🎯 YOU'VE RECEIVED
 
-A complete, production-ready Python SDK for protecting APIs, scripts, 
-and cloud operations with lightweight policy-driven guardrails.
+A complete, production-ready Python package for protecting APIs, scripts,
+automation workflows, and cloud operations with lightweight policy-driven guardrails.
 
 **Perfect for:**
 - Students & solo developers
@@ -48,17 +48,20 @@ That's it! Your API call is now protected.
 
 ## ✅ WHAT'S INCLUDED
 
-Core SDK:
+Core package:
   ✓ Guardian class with decorators
-  ✓ OPA REST client
+  ✓ Admin CLI (`hexarch-ctl`)
+  ✓ FastAPI service (`hexarch-ctl serve api`)
+  ✓ OPA REST client for SDK mode
   ✓ YAML config auto-discovery
   ✓ 6 built-in policies
   ✓ Custom exceptions
 
-Examples (3):
+Examples (4+):
   ✓ OpenAI budget protection
   ✓ Discord bot rate limiting
   ✓ Safe file operations
+  ✓ TinyLlama / local model example
 
 Tests (30+):
   ✓ Complete test coverage
@@ -126,7 +129,7 @@ See what's included?                FILE_MANIFEST.md
 
 ## 🛠️ INTEGRATION EXAMPLES
 
-This SDK works with:
+This package works with:
   • Python scripts & CLI tools
   • Discord.py bots
   • Flask/FastAPI apps
@@ -150,9 +153,9 @@ See docs/INTEGRATION_GUIDE.md for 12 complete examples.
   → Works with existing code
   → Just add @guardian.check()
 
-✨ Zero Configuration
+✨ Low Configuration
   → Auto-discovers hexarch.yaml
-  → Works immediately
+  → Requires reachable OPA endpoint (local or remote)
 
 ✨ Policy-Driven
   → Change policies, not code
@@ -210,10 +213,9 @@ python -c "from hexarch_guardrails import Guardian; print('✅ Works!')"
 Lines of Code: ~620 (core SDK)
 Test Cases: 30+ (full coverage)
 Documentation: 2000+ lines
-Examples: 3 (real-world use cases)
-Dependencies: 3 (requests, pyyaml, python-dotenv)
-Python Support: 3.8 - 3.11+
-Package Size: ~50KB
+Examples: 4 curated SDK examples + public demo assets
+Dependencies: See pyproject.toml for current base and optional extras
+Python Support: 3.8 - 3.12
 Time to Integrate: 5 minutes
 
 ═══════════════════════════════════════════════════════════════
@@ -234,20 +236,21 @@ Time to Integrate: 5 minutes
 1. Read QUICKSTART.md (5 minutes)
 2. Copy hexarch.yaml to your project
 3. Install: pip install hexarch-guardrails
-4. Try an example: python examples/openai_budget.py
-5. Add to your code: @guardian.check("api_budget")
-6. Test: pytest
-7. Deploy: pip install in your app
+4. Start OPA (if needed): docker run -p 8181:8181 openpolicyagent/opa:latest run --server
+5. Try an example: python demos/first_run_guarded_call_demo.py
+6. Add to your code: @guardian.check("api_budget")
+7. Test: pytest
+8. Deploy: pip install in your app
 
 ═══════════════════════════════════════════════════════════════
 
 ## ❓ FREQUENTLY ASKED QUESTIONS
 
 Q: Do I need OPA?
-A: Yes, run it locally: docker run -p 8181:8181 openpolicyagent/opa:latest run --server
+A: For the decorator-based SDK path, yes — use a reachable local or remote OPA server. For workflow and orchestration integrations, you can also use the built-in FastAPI service via `hexarch-ctl serve api`.
 
 Q: How long does setup take?
-A: 5 minutes (3 lines of code + 1 YAML file)
+A: ~5 minutes (3 lines of code + 1 YAML file + OPA running)
 
 Q: Does it work with my favorite API?
 A: Yes! It's policy-driven, not API-specific.

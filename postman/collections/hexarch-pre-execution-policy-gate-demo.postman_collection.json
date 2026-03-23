@@ -1,0 +1,257 @@
+{
+  "info": {
+    "name": "Hexarch Pre-Execution Policy Gate Demo",
+    "description": "Demonstrates a Postman-driven pre-execution policy gate using Hexarch Guardrails. Run the requests in order to create a rule, attach a policy, then observe denied and allowed authorization outcomes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Create threshold rule",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{hexarchApiToken}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Actor-Id",
+            "value": "admin",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"postman-risk-threshold\",\n  \"rule_type\": \"CONSTRAINT\",\n  \"description\": \"Deny provider invocation when risk score exceeds threshold\",\n  \"priority\": 10,\n  \"enabled\": true,\n  \"condition\": {\n    \"field\": \"input.context.risk_score\",\n    \"op\": \"lte\",\n    \"value\": {{threshold}}\n  }\n}"
+        },
+        "url": {
+          "raw": "{{hexarchApiUrl}}/rules",
+          "host": [
+            "{{hexarchApiUrl}}"
+          ],
+          "path": [
+            "rules"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('rule created', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const data = pm.response.json();",
+              "const ruleId = data.id || data.rule_id || data.ruleId;",
+              "if (ruleId) {",
+              "  pm.environment.set('ruleId', ruleId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Create fail-closed policy",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{hexarchApiToken}}",
+            "type": "text"
+          },
+          {
+            "key": "X-Actor-Id",
+            "value": "admin",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"postman-pre-execution-gate\",\n  \"description\": \"Block provider call when risk score is over threshold\",\n  \"enabled\": true,\n  \"scope\": \"GLOBAL\",\n  \"scope_value\": null,\n  \"failure_mode\": \"FAIL_CLOSED\",\n  \"rule_ids\": [\"{{ruleId}}\"]\n}"
+        },
+        "url": {
+          "raw": "{{hexarchApiUrl}}/policies",
+          "host": [
+            "{{hexarchApiUrl}}"
+          ],
+          "path": [
+            "policies"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('policy created', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "const data = pm.response.json();",
+              "const policyId = data.id || data.policy_id || data.policyId;",
+              "if (policyId) {",
+              "  pm.environment.set('policyId', policyId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Authorize denied request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{hexarchApiToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"invoke_provider\",\n  \"resource\": { \"name\": \"llm-provider\" },\n  \"context\": {\n    \"client\": \"postman\",\n    \"provider_action\": \"chat_completion\",\n    \"risk_score\": {{riskScoreDenied}},\n    \"threshold\": {{threshold}},\n    \"workflow\": \"postman-pre-execution-policy-gate-demo\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{hexarchApiUrl}}/authorize",
+          "host": [
+            "{{hexarchApiUrl}}"
+          ],
+          "path": [
+            "authorize"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('deny decision returned', function () {",
+              "  pm.response.to.have.status(200);",
+              "  const data = pm.response.json();",
+              "  pm.expect(data.allowed).to.eql(false);",
+              "  pm.expect(data.decision).to.eql('DENY');",
+              "});",
+              "const data = pm.response.json();",
+              "pm.environment.set('lastAllowed', String(data.allowed));",
+              "if (data.reason) {",
+              "  pm.environment.set('lastReason', data.reason);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Authorize allowed request",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{hexarchApiToken}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"invoke_provider\",\n  \"resource\": { \"name\": \"llm-provider\" },\n  \"context\": {\n    \"client\": \"postman\",\n    \"provider_action\": \"chat_completion\",\n    \"risk_score\": {{riskScoreAllowed}},\n    \"threshold\": {{threshold}},\n    \"workflow\": \"postman-pre-execution-policy-gate-demo\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{hexarchApiUrl}}/authorize",
+          "host": [
+            "{{hexarchApiUrl}}"
+          ],
+          "path": [
+            "authorize"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('allow decision returned', function () {",
+              "  pm.response.to.have.status(200);",
+              "  const data = pm.response.json();",
+              "  pm.expect(data.allowed).to.eql(true);",
+              "  pm.expect(data.decision).to.eql('ALLOW');",
+              "});",
+              "const data = pm.response.json();",
+              "pm.environment.set('lastAllowed', String(data.allowed));",
+              "pm.environment.unset('lastReason');"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "hexarchApiUrl",
+      "value": "http://127.0.0.1:8099"
+    },
+    {
+      "key": "hexarchApiToken",
+      "value": "dev-token"
+    },
+    {
+      "key": "threshold",
+      "value": "5"
+    },
+    {
+      "key": "riskScoreDenied",
+      "value": "7"
+    },
+    {
+      "key": "riskScoreAllowed",
+      "value": "3"
+    },
+    {
+      "key": "ruleId",
+      "value": ""
+    },
+    {
+      "key": "policyId",
+      "value": ""
+    },
+    {
+      "key": "lastAllowed",
+      "value": ""
+    },
+    {
+      "key": "lastReason",
+      "value": ""
+    }
+  ]
+}
