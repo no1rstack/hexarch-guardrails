@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="hexarch-guardrails",
-    version="0.4.1",
+    version="0.4.2",
     description="Policy-driven API protection library with OPA integration, audit trails, and FastAPI server",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",

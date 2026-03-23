@@ -16,7 +16,7 @@ from .policy_bundles import load_policy_bundle, publish_policy_bundle
 from .policy_engine import RegoDecisionEngine, build_engine_from_bundle
 from .runtime_settings import RuntimePolicySettings, resolve_runtime_settings
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 __author__ = "Hexarch"
 
 __all__ = [

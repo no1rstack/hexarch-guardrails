@@ -4,10 +4,10 @@ Hexarch Admin CLI (hexarch-ctl)
 Operational command-line interface for managing policies, querying decisions, 
 and monitoring provider performance metrics.
 
-Version: 0.4.0
+Version: 0.4.2
 """
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 __author__ = "Noir Stack LLC"
 __license__ = "MIT"
 
