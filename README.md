@@ -388,3 +388,8 @@ Use this checklist before publishing a new package version:
 MIT © Noir Stack LLC
 
 See LICENSE for full details.
+
+## License
+This project is licensed under the Business Source License 1.1 (BSL).  
+See the LICENSE file for details.
+
