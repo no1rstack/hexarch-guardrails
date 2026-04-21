@@ -17,13 +17,13 @@ setup(
     license="MIT",
     license_files=["LICENSE"],
     packages=find_packages(),
-    python_requires=">=3.8",
+    python_requires=">=3.9",
     install_requires=[
         "requests>=2.28.0",
         "pyyaml>=6.0",
         "python-dotenv>=0.21.0",
         "click>=8.1.0",
-        "pydantic>=2.0",
+        "pydantic==2.13.3",
         "tabulate>=0.9.0",
         "colorama>=0.4.6",
         "sqlalchemy>=2.0.0",
@@ -33,7 +33,7 @@ setup(
     extras_require={
         "cli": [
             "click>=8.1.0",
-            "pydantic>=2.0",
+            "pydantic==2.13.3",
             "tabulate>=0.9.0",
             "colorama>=0.4.6",
         ],

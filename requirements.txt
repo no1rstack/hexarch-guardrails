@@ -1,0 +1,4 @@
+# Minimal pinned requirements for reproducible installs (developer/local use)
+pydantic==2.13.3
+pydantic-core==2.46.3
+# Consider generating a full lockfile with `pip freeze > requirements.txt` or using poetry/pip-tools for deterministic installs
